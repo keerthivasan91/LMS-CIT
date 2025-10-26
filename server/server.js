@@ -24,7 +24,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false // Disable CSP for API (configure properly for production)
+  contentSecurityPolicy: false
 }));
 
 // Compression middleware
@@ -32,8 +32,8 @@ app.use(compression());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 100 : 1000, // limit each IP to 100 requests per windowMs in production
+  windowMs: 15 * 60 * 1000,
+  max: isProduction ? 100 : 1000,
   message: {
     error: 'Too many requests',
     message: 'Please try again later.'
@@ -46,8 +46,8 @@ app.use('/api/', limiter);
 
 // More aggressive rate limiting for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login attempts per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: {
     error: 'Too many login attempts',
     message: 'Please try again after 15 minutes.'
@@ -59,7 +59,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -72,22 +72,25 @@ app.use(cors({
     'X-CSRF-Token'
   ],
   exposedHeaders: ['X-Total-Count', 'X-Page-Count']
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors());
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
 
 // Body parsing middleware with limits
 app.use(express.json({
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
+  limit: '10mb'
 }));
 app.use(express.urlencoded({
   extended: true,
-  limit: '10mb',
-  parameterLimit: 100
+  limit: '10mb'
 }));
 
 // Request logging
@@ -109,8 +112,8 @@ const sessionStore = new MySQLStore({
   password: process.env.DB_PASSWORD || 'root',
   database: process.env.DB_NAME || 'faculty_leave',
   clearExpired: true,
-  checkExpirationInterval: 15 * 60 * 1000, // 15 minutes
-  expiration: 24 * 60 * 60 * 1000, // 24 hours
+  checkExpirationInterval: 15 * 60 * 1000,
+  expiration: 24 * 60 * 60 * 1000,
   createDatabaseTable: true,
   schema: {
     tableName: 'sessions',
@@ -129,13 +132,12 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'lms-cit-secure-session-secret-2024-change-in-production',
   resave: false,
   saveUninitialized: false,
-  rolling: true, // Refresh session on every request
+  rolling: true,
   cookie: {
-    secure: isProduction, // Use HTTPS in production
+    secure: isProduction,
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: isProduction ? 'strict' : 'lax',
-    domain: isProduction ? process.env.DOMAIN : undefined
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: isProduction ? 'strict' : 'lax'
   }
 }));
 
@@ -144,10 +146,7 @@ app.use(sessionValidator);
 
 // Security headers middleware
 app.use((req, res, next) => {
-  // Remove potentially sensitive headers
   res.removeHeader('X-Powered-By');
-  
-  // Add security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -164,7 +163,6 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   
-  // Log request details
   logger.info('Incoming request', {
     method: req.method,
     url: req.url,
@@ -173,7 +171,6 @@ app.use((req, res, next) => {
     userId: req.session?.user_id || 'anonymous'
   });
 
-  // Log response when finished
   res.on('finish', () => {
     const duration = Date.now() - start;
     logger.info('Request completed', {
@@ -188,7 +185,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Optional authentication (adds user info to req if available)
+// Optional authentication
 app.use(optionalAuth);
 
 // Import centralized routes
@@ -197,15 +194,14 @@ const apiRoutes = require('./routes/index');
 // Use API routes with base path
 app.use('/api', apiRoutes);
 
-// Health check endpoint (no auth required)
+// Health check endpoint
 app.get('/health', (req, res) => {
   const healthcheck = {
     status: 'OK',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    memory: process.memoryUsage(),
-    database: 'connected' // You can add actual DB health check here
+    memory: process.memoryUsage()
   };
 
   res.json(healthcheck);
@@ -216,41 +212,55 @@ app.get('/api', (req, res) => {
   res.json({
     message: 'LMS-CIT API Server',
     version: '1.0.0',
-    documentation: 'https://github.com/your-org/lms-cit/docs',
     endpoints: {
       auth: '/api/auth',
       leaves: '/api/leaves',
       profile: '/api/profile',
       hod: '/api/hod',
-      principal: '/api/principal',
-      admin: '/api/admin'
+      principal: '/api/principal'
     },
     timestamp: new Date().toISOString()
   });
 });
 
-// Serve static files in production (if serving frontend from Express)
+// Serve static files in production
 if (isProduction) {
   app.use(express.static(path.join(__dirname, '../client/dist')));
   
-  // Catch-all handler for SPA
-  app.get('*', (req, res) => {
+  // Catch-all handler for SPA routing - must come after API routes
+  app.get('*', (req, res, next) => {
+    // Skip if it's an API route
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
 }
 
-// 404 handler for API routes
-app.use('/api/*', notFoundHandler);
-
-// 404 handler for non-API routes
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.method} ${req.originalUrl} not found`
-  });
+// 404 handler for API routes - use middleware instead of route
+app.use((req, res, next) => {
+  // Only handle API routes that weren't matched
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({
+      error: 'API endpoint not found',
+      message: `Route ${req.method} ${req.originalUrl} not found`,
+      path: req.originalUrl
+    });
+  }
+  next();
 });
 
-// Global error handler (must be last)
+// 404 handler for all other routes (only in development)
+if (!isProduction) {
+  app.use((req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `Route ${req.method} ${req.originalUrl} not found`
+    });
+  });
+}
+
+// Global error handler
 app.use(errorHandler);
 
 // Handle unhandled promise rejections
@@ -260,11 +270,6 @@ process.on('unhandledRejection', (reason, promise) => {
     stack: reason?.stack,
     promise
   });
-  
-  // In production, you might want to exit the process
-  if (isProduction) {
-    process.exit(1);
-  }
 });
 
 // Handle uncaught exceptions
@@ -273,40 +278,14 @@ process.on('uncaughtException', (error) => {
     error: error.message,
     stack: error.stack
   });
-  
-  // In production, exit the process
-  if (isProduction) {
-    process.exit(1);
-  }
+  process.exit(1);
 });
 
-// Graceful shutdown handling
-const gracefulShutdown = (signal) => {
-  logger.info(`Received ${signal}, starting graceful shutdown...`);
-  
-  server.close((err) => {
-    if (err) {
-      logger.error('Error during shutdown', { error: err.message });
-      process.exit(1);
-    }
-    
-    logger.info('Server closed gracefully');
-    process.exit(0);
-  });
-
-  // Force close after 10 seconds
-  setTimeout(() => {
-    logger.error('Forcing shutdown after timeout');
-    process.exit(1);
-  }, 10000);
-};
-
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, () => {
   logger.info(`🚀 Server started successfully`, {
     port: PORT,
-    environment: process.env.NODE_ENV || 'development',
-    nodeVersion: process.version
+    environment: process.env.NODE_ENV || 'development'
   });
   
   console.log(`\n🎯 LMS-CIT Backend Server Started!`);
@@ -314,14 +293,24 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📡 API Base: http://localhost:${PORT}/api`);
   console.log(`❤️  Health: http://localhost:${PORT}/health`);
-  console.log(`🔒 Secure: ${isProduction ? 'Yes (HTTPS)' : 'No (Development)'}`);
-  console.log(`⏰ Started at: ${new Date().toISOString()}`);
   console.log(`=========================================\n`);
 });
 
-// Handle shutdown signals
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  logger.info(`Received ${signal}, starting graceful shutdown...`);
+  server.close(() => {
+    logger.info('Server closed gracefully');
+    process.exit(0);
+  });
+  
+  setTimeout(() => {
+    logger.error('Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // For nodemon
 
 module.exports = server;
