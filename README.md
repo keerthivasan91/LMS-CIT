@@ -1,47 +1,58 @@
 # Leave Management System - CIT (LMS-CIT)
 
-A comprehensive web-based Leave Management System designed for educational institutions, built with React.js frontend and Express.js backend with MySQL database.
+A comprehensive web-based Leave Management System designed for educational institutions, built with modern React.js frontend and Express.js backend with MySQL database.
 
-## 🚀 Features
+## 🚀 Live Demo
+- **Frontend**: [Coming Soon]
+- **Backend API**: [Coming Soon]
+- **Demo Credentials**: [Check Wiki](https://github.com/keerthivasan91/LMS-CIT/wiki)
 
-### User Features
-- **Multi-role Authentication** (Student, Faculty, HOD, Principal, Admin)
-- **Leave Application & Tracking**
-- **Real-time Notifications** (Email & SMS)
-- **Holiday Calendar Integration**
-- **Leave History & Status**
-- **Profile Management**
-- **Responsive Design**
+## ✨ Features
 
-### Administrative Features
-- **Multi-level Approval Workflow**
-- **Leave Balance Management**
-- **Class Arrangement Automation**
-- **Analytics & Reports**
-- **Bulk Operations**
+### 👤 User Features
+- **🔐 Multi-role Authentication** (Student, Faculty, HOD, Principal, Admin)
+- **📝 Leave Application & Tracking** with real-time status
+- **🔔 Real-time Notifications** (Email & SMS integration)
+- **📅 Holiday Calendar Integration**
+- **📊 Leave History & Analytics**
+- **👤 Profile Management**
+- **📱 Fully Responsive Design**
+
+### 🛠 Administrative Features
+- **⚡ Multi-level Approval Workflow**
+- **💰 Leave Balance Management**
+- **🏫 Class Arrangement Automation**
+- **📈 Analytics & Reports Dashboard**
+- **👥 Bulk User Operations**
+- **⚙️ System Configuration**
 
 ## 🛠 Tech Stack
 
 ### Frontend
-- **React.js** - UI Framework
-- **Vite** - Build Tool
-- **Axios** - HTTP Client
-- **React Router** - Navigation
-- **CSS3** - Styling
+- **⚛️ React.js 18** - UI Framework with Hooks
+- **⚡ Vite** - Next Generation Build Tool
+- **🔗 React Router v6** - Navigation
+- **📡 Axios** - HTTP Client
+- **🔄 React Query** - Server State Management
 
 ### Backend
-- **Node.js** - Runtime Environment
-- **Express.js** - Web Framework
-- **MySQL** - Database
-- **JWT** - Authentication
-- **Nodemailer** - Email Service
-- **Twilio** - SMS Service
+- **🟢 Node.js** - Runtime Environment
+- **🚂 Express.js** - Web Framework
+- **🗄️ MySQL 8.0** - Database
+- **🔑 JWT** - Authentication
+- **📧 Nodemailer** - Email Service
+- **💬 Twilio** - SMS Service
+- **🔒 Helmet** - Security Headers
 
-### Development Tools
-- **Git** - Version Control
-- **Docker** - Containerization
-- **Nodemon** - Development Server
-- **Jest** - Testing Framework
+### Development & Deployment
+- **🐳 Docker & Docker Compose** - Containerization
+- **🔄 Nodemon** - Development Server
+- **🧪 Jest & Supertest** - Testing Framework
+- **📝 ESLint & Prettier** - Code Quality
+- **🐙 GitHub Actions** - CI/CD Pipeline
+
+## 📁 Project Structure
+
 
 ## 📁 Project Structure
 
@@ -159,25 +170,25 @@ LMS-CIT/
 └── README.md                   # Main project documentation
 ```
 
+
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- MySQL (v8.0 or higher)
-- npm or yarn
+- **Node.js** (v18 or higher)
+- **MySQL** (v8.0 or higher)
+- **pnpm** (recommended) or npm
 
-### Installation
+### 📥 Installation
 
 1. **Clone the repository**
-    ```bash
-    git clone https://github.com/your-username/LMS-CIT.git
-    cd LMS-CIT
-    ```
+   ```bash
+   git clone https://github.com/keerthivasan91/LMS-CIT.git
+   cd LMS-CIT
 
 2. **Backend Setup**
     ```bash
     cd server
-    npm install
+    pnpm install
 
     # Configure environment variables
     cp .env.example .env
@@ -193,7 +204,7 @@ LMS-CIT/
 4. **Frontend Setup**
     ```bash
     cd ../client
-    npm install
+    pnpm install
     ```
 
 ### Running the Application
@@ -203,14 +214,14 @@ LMS-CIT/
 **Start Backend Server**
 ```bash
 cd server
-npm run dev
+pnpm run dev
 # Server runs on http://localhost:5000
 ```
 
 **Start Frontend Server**
 ```bash
 cd client
-npm run dev
+pnpm run dev
 # Client runs on http://localhost:3000
 ```
 
@@ -296,11 +307,11 @@ VITE_API_BASE_URL=http://localhost:5000/api
 ```bash
 # Backend tests
 cd server
-npm test
+pnpm test
 
 # Frontend tests  
 cd client
-npm test
+pnpm test
 ```
 
 ## 📦 Deployment
