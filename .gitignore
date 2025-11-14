@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 */node_modules/
+package-lock.json
+package.json
+pnpm-lock.yaml
 
 # Environment variables
 .env
