@@ -1,21 +1,55 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
+require("dotenv").config();
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+
+const rateLimit = require("./middleware/rateLimit");
+const { errorHandler } = require("./middleware/errorHandler");
+
+const authRoutes = require("./routes/auth");
+const branchRoutes = require("./routes/branches");
+const leaveRoutes = require("./routes/leave");
+const substituteRoutes = require("./routes/substitute");
+const hodRoutes = require("./routes/hod");
+const adminRoutes = require("./routes/admin");
+const profileRoutes = require("./routes/profile");
+const holidayRoutes = require("./routes/holiday");
+
 
 const app = express();
+
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan("combined"));
 
-// Basic health check route
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'LMS CIT Server is running!' });
-});
+app.use(rateLimit);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
-});
+app.use(cors({
+  origin: "http://localhost:3000",
+  methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  allowedHeaders: "Content-Type, Authorization"
+}));
 
-export default app;
+// API routes
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api", branchRoutes);
+app.use("/api", leaveRoutes);
+app.use("/api/substitute", substituteRoutes);  // <-- FIXED
+app.use("/api", hodRoutes);
+app.use("/api", adminRoutes);
+app.use("/api", profileRoutes);
+app.use("/api/holidays", holidayRoutes);        // <-- better consistency
+app.use("/api/notifications", require("./routes/notifications")); // <-- FIXED
+
+
+// Health check
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+app.use(errorHandler);
+
+module.exports = app;   // <-- FIXED EXPORT
