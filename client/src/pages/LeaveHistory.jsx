@@ -22,10 +22,12 @@ const LeaveHistory = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Backend → Frontend mapping
+      /* -----------------------------------------------------------
+         Map Applied Leaves (User)
+      ----------------------------------------------------------- */
       const mapApplied = (list) =>
         list.map((l) => ({
-          id: l.id,
+          id: l.leave_id,
           type: l.leave_type,
           start_date: l.start_date,
           start_session: l.start_session,
@@ -37,24 +39,32 @@ const LeaveHistory = () => {
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
-          applied_at: l.applied_at,
+          applied_on: l.applied_on,
+          reason: l.reason
         }));
 
+      /* -----------------------------------------------------------
+         Map Substitute Requests Assigned to User
+      ----------------------------------------------------------- */
       const mapSubReq = (list) =>
         list.map((r) => ({
-          id: r.id,
+          id: r.leave_id,
           requester: r.requester_name,
           type: r.leave_type,
           start_date: r.start_date,
           end_date: r.end_date,
           days: r.days,
           reason: r.reason,
-          status: r.status,
+          status: r.substitute_status
         }));
 
+      /* -----------------------------------------------------------
+         Map Department Leaves (HOD)
+      ----------------------------------------------------------- */
       const mapDept = (list) =>
         list.map((l) => ({
-          id: l.id,
+          id: l.leave_id,
+          requester: l.requester_name,
           type: l.leave_type,
           start_date: l.start_date,
           start_session: l.start_session,
@@ -66,14 +76,18 @@ const LeaveHistory = () => {
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
-          applied_at: l.applied_at,
+          applied_on: l.applied_on,
+          reason: l.reason
         }));
 
+      /* -----------------------------------------------------------
+         Map Institution Leaves (Admin / Principal)
+      ----------------------------------------------------------- */
       const mapInstitution = (list) =>
         list.map((l) => ({
-          id: l.id,
+          id: l.leave_id,
           requester: l.requester_name,
-          department: l.department,
+          department: l.department_code,
           type: l.leave_type,
           start_date: l.start_date,
           start_session: l.start_session,
@@ -85,7 +99,8 @@ const LeaveHistory = () => {
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
-          applied_at: l.applied_at,
+          applied_on: l.applied_on,
+          reason: l.reason
         }));
 
       setApplied(mapApplied(res.data.applied_leaves || []));
@@ -94,6 +109,7 @@ const LeaveHistory = () => {
       setInstitutionLeaves(mapInstitution(res.data.institution_leaves || []));
       setDepartments(res.data.departments || []);
       setSelectedDept(res.data.selected_department || dept || "");
+
     } catch (err) {
       console.error("Failed to load history", err);
       setApplied([]);
@@ -106,7 +122,6 @@ const LeaveHistory = () => {
 
   useEffect(() => {
     loadAll();
-    // eslint-disable-next-line
   }, []);
 
   const handleDeptFilter = async (e) => {
@@ -119,7 +134,9 @@ const LeaveHistory = () => {
     <div className="history-container">
       <h2>Leave History</h2>
 
-      {/* USER APPLIED SECTION */}
+      {/* -----------------------------------------------------------
+         USER APPLIED SECTION
+      ----------------------------------------------------------- */}
       {user && user.role !== "admin" && (
         <>
           <h3 style={{ marginTop: 30, color: "#667eea" }}>Leaves You Applied</h3>
@@ -129,11 +146,13 @@ const LeaveHistory = () => {
               <table className="history-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>Type</th><th>Start</th><th>Start Session</th>
-                    <th>End</th><th>End Session</th><th>Days</th>
-                    <th>Substitute</th><th>Sub Status</th>
-                    <th>HOD</th><th>Principal</th>
-                    <th>Final</th><th>Applied</th>
+                    <th>ID</th><th>Type</th>
+                    <th>Start</th><th>Session</th>
+                    <th>End</th><th>Session</th>
+                    <th>Days</th><th>Substitute</th>
+                    <th>Sub Status</th><th>HOD</th>
+                    <th>Principal</th><th>Final</th>
+                    <th>Reason</th><th>Applied</th>
                   </tr>
                 </thead>
 
@@ -142,88 +161,91 @@ const LeaveHistory = () => {
                     <tr key={l.id}>
                       <td>{l.id}</td>
                       <td>{l.type}</td>
+
                       <td>{formatDate(l.start_date)}</td>
                       <td>{l.start_session}</td>
+
                       <td>{formatDate(l.end_date)}</td>
                       <td>{l.end_session}</td>
+
                       <td>{l.days}</td>
                       <td>{l.substitute || "None"}</td>
+
                       <td>{l.sub_status}</td>
                       <td>{l.hod_status}</td>
                       <td>{l.principal_status}</td>
                       <td>{l.final_status}</td>
-                      <td>{formatDate(l.applied_at)}</td>
+
+                      <td>{l.reason}</td>
+                      <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <div className="no-records">
-              <p>No leave records found.</p>
-            </div>
+            <div className="no-records"><p>No leave records found.</p></div>
           )}
         </>
       )}
 
-      {/* SUBSTITUTE REQUESTS */}
-      {isFaculty(user) && (
+      {/* -----------------------------------------------------------
+         SUBSTITUTE REQUESTS ASSIGNED TO THIS USER
+      ----------------------------------------------------------- */}
+      {isFaculty(user) && substituteRequests.length > 0 && (
         <>
           <h3 style={{ marginTop: 40, color: "#28a745" }}>
             Substitute Requests Assigned to You
           </h3>
 
-          {substituteRequests.length ? (
-            <div className="table-wrapper">
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>ID</th><th>Requester</th><th>Type</th><th>Start</th>
-                    <th>End</th><th>Days</th><th>Reason</th><th>Status</th>
-                  </tr>
-                </thead>
+          <div className="table-wrapper">
+            <table className="history-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Requester</th><th>Type</th>
+                  <th>Start</th><th>End</th>
+                  <th>Days</th><th>Reason</th><th>Status</th>
+                </tr>
+              </thead>
 
-                <tbody>
-                  {substituteRequests.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.id}</td>
-                      <td>{r.requester}</td>
-                      <td>{r.type}</td>
-                      <td>{formatDate(r.start_date)}</td>
-                      <td>{formatDate(r.end_date)}</td>
-                      <td>{r.days}</td>
-                      <td>{r.reason}</td>
-                      <td>{r.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="no-records">
-              <p>No substitute requests assigned to you.</p>
-            </div>
-          )}
+              <tbody>
+                {substituteRequests.map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.id}</td>
+                    <td>{r.requester}</td>
+                    <td>{r.type}</td>
+                    <td>{formatDate(r.start_date)}</td>
+                    <td>{formatDate(r.end_date)}</td>
+                    <td>{r.days}</td>
+                    <td>{r.reason}</td>
+                    <td>{r.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
-      {/* HOD SECTION */}
+      {/* -----------------------------------------------------------
+         HOD SECTION
+      ----------------------------------------------------------- */}
       {isHOD(user) && (
         <>
-          <h3 style={{ marginTop: 40, color: "#667eea" }}>
-            Department Leave History
-          </h3>
+          <h3 style={{ marginTop: 40, color: "#667eea" }}>Department Leave History</h3>
 
           {deptLeaves.length ? (
             <div className="table-wrapper">
               <table className="history-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>Type</th><th>Start</th><th>Start Session</th>
-                    <th>End</th><th>End Session</th><th>Days</th>
-                    <th>Substitute</th><th>Sub Status</th>
-                    <th>HOD</th><th>Principal</th>
-                    <th>Final</th><th>Applied</th>
+                    <th>ID</th><th>Requester</th><th>Type</th>
+                    <th>Start</th><th>Session</th>
+                    <th>End</th><th>Session</th>
+                    <th>Days</th><th>Substitute</th>
+                    <th>Sub Status</th><th>HOD</th>
+                    <th>Principal</th><th>Final</th>
+                    <th>Reason</th><th>Applied</th>
                   </tr>
                 </thead>
 
@@ -231,32 +253,39 @@ const LeaveHistory = () => {
                   {deptLeaves.map((l) => (
                     <tr key={l.id}>
                       <td>{l.id}</td>
+                      <td>{l.requester}</td>
                       <td>{l.type}</td>
+
                       <td>{formatDate(l.start_date)}</td>
                       <td>{l.start_session}</td>
+
                       <td>{formatDate(l.end_date)}</td>
                       <td>{l.end_session}</td>
+
                       <td>{l.days}</td>
                       <td>{l.substitute || "None"}</td>
+
                       <td>{l.sub_status}</td>
                       <td>{l.hod_status}</td>
                       <td>{l.principal_status}</td>
                       <td>{l.final_status}</td>
-                      <td>{formatDate(l.applied_at)}</td>
+
+                      <td>{l.reason}</td>
+                      <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <div className="no-records">
-              <p>No leave records found for this department.</p>
-            </div>
+            <div className="no-records"><p>No department leave records found.</p></div>
           )}
         </>
       )}
 
-      {/* ADMIN SECTION */}
+      {/* -----------------------------------------------------------
+         ADMIN / PRINCIPAL SECTION
+      ----------------------------------------------------------- */}
       {isAdmin(user) && (
         <>
           <h3 style={{ marginTop: 40, color: "#6f42c1" }}>
@@ -272,23 +301,23 @@ const LeaveHistory = () => {
             >
               <option value="">All Departments</option>
               {departments.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>
 
           {institutionLeaves.length ? (
             <div className="table-wrapper">
-              <table className="history-table" style={{ minWidth: 1000 }}>
+              <table className="history-table" style={{ minWidth: 1200 }}>
                 <thead>
                   <tr>
                     <th>ID</th><th>Requester</th><th>Department</th><th>Type</th>
-                    <th>Start</th><th>Start Session</th><th>End</th><th>End Session</th>
-                    <th>Days</th><th>Substitute</th><th>Sub Status</th>
-                    <th>HOD</th><th>Principal</th>
-                    <th>Final</th><th>Applied</th>
+                    <th>Start</th><th>Session</th>
+                    <th>End</th><th>Session</th>
+                    <th>Days</th><th>Substitute</th>
+                    <th>Sub Status</th><th>HOD</th>
+                    <th>Principal</th><th>Final</th>
+                    <th>Reason</th><th>Applied</th>
                   </tr>
                 </thead>
 
@@ -299,26 +328,30 @@ const LeaveHistory = () => {
                       <td>{l.requester}</td>
                       <td>{l.department}</td>
                       <td>{l.type}</td>
+
                       <td>{formatDate(l.start_date)}</td>
                       <td>{l.start_session}</td>
+
                       <td>{formatDate(l.end_date)}</td>
                       <td>{l.end_session}</td>
+
                       <td>{l.days}</td>
                       <td>{l.substitute || "None"}</td>
+
                       <td>{l.sub_status}</td>
                       <td>{l.hod_status}</td>
                       <td>{l.principal_status}</td>
                       <td>{l.final_status}</td>
-                      <td>{formatDate(l.applied_at)}</td>
+
+                      <td>{l.reason}</td>
+                      <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <div className="no-records">
-              <p>No institution leave records found.</p>
-            </div>
+            <div className="no-records"><p>No institution leave records found.</p></div>
           )}
         </>
       )}

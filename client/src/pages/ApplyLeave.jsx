@@ -8,7 +8,7 @@ const ApplyLeave = () => {
   const { user, token } = useContext(AuthContext);
 
   const [form, setForm] = useState({
-    leave_type: "Casual",
+    leave_type: "Casual Leave",
     start_date: "",
     start_session: "Forenoon",
     end_date: "",
@@ -96,7 +96,7 @@ const ApplyLeave = () => {
 
       // Reset form
       setForm({
-        leave_type: "Casual",
+        leave_type: "Casual Leave",
         start_date: "",
         start_session: "Forenoon",
         end_date: "",

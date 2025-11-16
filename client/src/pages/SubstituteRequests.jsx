@@ -1,27 +1,23 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/axiosConfig";
 import "../App.css";
-import { formatDate } from "../utils/dateFormatter";
 
 const SubstituteRequests = () => {
   const [requests, setRequests] = useState([]);
+  const token = localStorage.getItem("token");
 
-  const token = localStorage.getItem("token"); // FIXED: read token
-  const formatDate = (isoString) => {
-    if (!isoString) return "";
-    const d = new Date(isoString);
-    return d.toLocaleDateString("en-GB");  // 28/02/2025
+  const formatDate = (iso) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("en-GB");
   };
-
-
 
   const loadRequests = async () => {
     try {
       const res = await axios.get("/api/substitute/requests", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      setRequests(res.data.requests || []); // FIXED
+      setRequests(res.data.requests || []);
     } catch (err) {
       console.error("Failed to load substitute requests", err);
       setRequests([]);
@@ -34,22 +30,26 @@ const SubstituteRequests = () => {
 
   const handleAccept = async (id) => {
     try {
-      await axios.post(`/api/substitute/accept/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(
+        `/api/substitute/approve/${id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       loadRequests();
-    } catch (err) {
+    } catch {
       alert("Error accepting request");
     }
   };
 
   const handleReject = async (id) => {
     try {
-      await axios.post(`/api/substitute/reject/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(
+        `/api/substitute/reject/${id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       loadRequests();
-    } catch (err) {
+    } catch {
       alert("Error rejecting request");
     }
   };
@@ -67,7 +67,7 @@ const SubstituteRequests = () => {
                 <th>Requester</th>
                 <th>Start</th>
                 <th>End</th>
-                <th>Status</th>
+                <th>Sub Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -79,9 +79,10 @@ const SubstituteRequests = () => {
                   <td>{r.requester_name}</td>
                   <td>{formatDate(r.start_date)}</td>
                   <td>{formatDate(r.end_date)}</td>
-                  <td>{r.status}</td>
+                  <td>{r.substitute_status}</td>
+
                   <td>
-                    {r.status === "pending" ? (
+                    {r.substitute_status === "pending" ? (
                       <>
                         <button
                           className="action-accept"
@@ -97,16 +98,19 @@ const SubstituteRequests = () => {
                           Reject
                         </button>
                       </>
-                    ) : "Responded"}
+                    ) : (
+                      "Responded"
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
-
           </table>
         </div>
       ) : (
-        <div className="no-records"><p>No substitute requests.</p></div>
+        <div className="no-records">
+          <p>No substitute requests.</p>
+        </div>
       )}
     </div>
   );

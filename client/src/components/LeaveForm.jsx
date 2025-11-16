@@ -12,8 +12,15 @@ const LeaveForm = ({
 }) => {
   return (
     <form onSubmit={onSubmit}>
+
+      {/* Leave Type */}
       <label>Leave Type</label>
-      <select name="leave_type" value={form.leave_type} onChange={onChange} required>
+      <select
+        name="leave_type"
+        value={form.leave_type}
+        onChange={onChange}
+        required
+      >
         <option>Casual Leave</option>
         <option>Earned Leave</option>
         <option>OOD</option>
@@ -23,6 +30,7 @@ const LeaveForm = ({
         <option>Compensatory Off Leave</option>
       </select>
 
+      {/* Dates */}
       <label>Start Date</label>
       <input
         type="date"
@@ -37,10 +45,9 @@ const LeaveForm = ({
         name="start_session"
         value={form.start_session}
         onChange={onChange}
-        required
       >
-        <option>Forenoon</option>
-        <option>Afternoon</option>
+        <option value="Forenoon">Forenoon</option>
+        <option value="Afternoon">Afternoon</option>
       </select>
 
       <label>End Date</label>
@@ -57,13 +64,12 @@ const LeaveForm = ({
         name="end_session"
         value={form.end_session}
         onChange={onChange}
-        required
       >
-        <option>Forenoon</option>
-        <option>Afternoon</option>
+        <option value="Forenoon">Forenoon</option>
+        <option value="Afternoon">Afternoon</option>
       </select>
 
-
+      {/* Reason */}
       <label>Reason</label>
       <textarea
         name="reason"
@@ -73,10 +79,12 @@ const LeaveForm = ({
         required
       ></textarea>
 
-      {/* STAFF substitute selection */}
+      {/* ---------------------------------------------------------
+          SUBSTITUTE SELECTION (STAFF)
+      --------------------------------------------------------- */}
       {role === "staff" && (
         <>
-          <label>Select Substitute Staff (Optional)</label>
+          <label>Select Substitute Faculty (Optional)</label>
           <select
             name="substitute_user_id"
             value={form.substitute_user_id}
@@ -85,25 +93,18 @@ const LeaveForm = ({
             <option value="">-- None --</option>
             {facultyList.map((f) => (
               <option key={f.user_id} value={f.user_id}>
-                {f.name} ({f.department})
+                {f.name} ({f.department_code})
               </option>
             ))}
           </select>
         </>
       )}
 
-      {/* FACULTY & HOD substitute logic */}
+      {/* ---------------------------------------------------------
+          SUBSTITUTE SELECTION (FACULTY / HOD)
+      --------------------------------------------------------- */}
       {role !== "staff" && role !== "admin" && (
         <>
-          <label>Alternate Arrangements Made</label>
-          <textarea
-            name="alternate"
-            value={form.alternate}
-            onChange={onChange}
-            placeholder="Mention alternate arrangements"
-            required
-          ></textarea>
-
           <label>Department for Substitute</label>
           <select
             name="department_select"
@@ -112,11 +113,13 @@ const LeaveForm = ({
           >
             <option value="">-- Select Department --</option>
             {departments.map((d) => (
-              <option key={d} value={d}>{d}</option>
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
           </select>
 
-          <label>Substitute Faculty (Optional)</label>
+          <label>Select Substitute Faculty (Optional)</label>
           <select
             name="substitute_user_id"
             value={form.substitute_user_id}
@@ -124,7 +127,9 @@ const LeaveForm = ({
           >
             <option value="">-- None --</option>
             {staffList.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
+              <option key={s.user_id} value={s.user_id}>
+                {s.name}
+              </option>
             ))}
           </select>
         </>
