@@ -20,7 +20,7 @@ const PrincipalApprovals = () => {
 
   const loadRequests = async () => {
     try {
-      const res = await axios.get("/principal/requests");
+      const res = await axios.get("/api/principal/requests");
       setRequests(res.data || []);
     } catch (err) {
       console.error("Failed to load principal requests", err);
@@ -30,7 +30,7 @@ const PrincipalApprovals = () => {
 
   const handleApprove = async (id) => {
     try {
-      await axios.post(`/principal/approve/${id}`);
+      await axios.post(`/api/principal/approve/${id}`);
       await loadRequests();
     } catch (err) {
       alert("Error approving leave");
@@ -39,7 +39,7 @@ const PrincipalApprovals = () => {
 
   const handleReject = async (id) => {
     try {
-      await axios.post(`/principal/reject/${id}`);
+      await axios.post(`/api/principal/reject/${id}`);
       await loadRequests();
     } catch (err) {
       alert("Error rejecting leave");

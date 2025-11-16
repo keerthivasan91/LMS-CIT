@@ -11,10 +11,9 @@ const {
 } = require('../controllers/adminController');
 
 // Only Admin and Principal can access these routes
-router.get('/admin/requests', auth(), role(["admin", "principal"]), adminDashboard);
+router.get('/api/admin/requests', auth(), role(["admin", "principal"]), adminDashboard);
 
-router.post('/admin/approve/:rid', auth(), role(["admin", "principal"]), approvePrincipal);
+router.post('/api/admin/approve/:rid', auth(), role(["admin", "principal"]), approvePrincipal);
 
-router.post('/admin/reject/:rid', auth(), role(["admin", "principal"]), rejectPrincipal);
-
+router.post('/api/admin/reject/:rid', auth(), role(["admin", "principal"]), rejectPrincipal);
 module.exports = router;

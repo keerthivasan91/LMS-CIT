@@ -52,7 +52,7 @@ async function hodDashboard(req, res, next) {
 -------------------------------------------------------------------*/
 async function approveHod(req, res, next) {
   try {
-    const leaveId = req.params.id;
+    const leaveId = req.params.rid;
 
     // Fetch requester email
     const [row] = await pool.query(
@@ -102,7 +102,7 @@ async function approveHod(req, res, next) {
 -------------------------------------------------------------------*/
 async function rejectHod(req, res, next) {
   try {
-    const leaveId = req.params.id;
+    const leaveId = req.params.rid;
 
     // Fetch requester
     const [row] = await pool.query(
