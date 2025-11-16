@@ -26,7 +26,7 @@ async function hodDashboard(req, res, next) {
           lr.substitute_id,
           lr.substitute_status,
           lr.hod_status,
-          lr.final_status,
+          lr.principal_status,
           lr.applied_on,
           u1.name AS requester_name,
           u1.email AS requester_email,
@@ -54,7 +54,7 @@ async function approveHod(req, res, next) {
   try {
     const leaveId = req.params.rid;
 
-    // Fetch requester email
+    // Fetch applicant email
     const [row] = await pool.query(
       `SELECT u.email, u.name
        FROM leave_requests lr
@@ -71,25 +71,27 @@ async function approveHod(req, res, next) {
     const facultyEmail = row[0].email;
     const facultyName = row[0].name;
 
-    // Update status
+    // Update workflow states
     await pool.query(
       `UPDATE leave_requests 
-       SET hod_status = 'approved',
-           updated_at = NOW()
+       SET 
+         hod_status = 'accepted',
+         principal_status = 'pending',
+         updated_at = NOW()
        WHERE leave_id = ?`,
       [leaveId]
     );
 
     res.json({ ok: true, message: "Leave approved by HOD" });
 
-    // Send mail after response
+    // Notify ONLY applicant
     await sendMail(
       facultyEmail,
       "Leave Approved by HOD",
       `
         <h2>Hello ${facultyName},</h2>
         <p>Your leave request has been <b>approved by the HOD</b>.</p>
-        <p>It is now forwarded for <b>Principal approval</b>.</p>
+        <p>It has now been forwarded to the <b>Principal</b> for final approval.</p>
       `
     );
   } catch (err) {
@@ -104,7 +106,7 @@ async function rejectHod(req, res, next) {
   try {
     const leaveId = req.params.rid;
 
-    // Fetch requester
+    // Fetch applicant
     const [row] = await pool.query(
       `SELECT u.email, u.name
        FROM leave_requests lr
@@ -121,23 +123,28 @@ async function rejectHod(req, res, next) {
     const facultyEmail = row[0].email;
     const facultyName = row[0].name;
 
+    // Reject – end workflow
     await pool.query(
       `UPDATE leave_requests 
-       SET hod_status = 'rejected',
-           final_status = 'rejected',
-           updated_at = NOW()
+       SET 
+         hod_status = 'rejected',
+         principal_status = NULL,
+         final_status = 'rejected',
+         updated_at = NOW()
        WHERE leave_id = ?`,
       [leaveId]
     );
 
     res.json({ ok: true, message: "Leave rejected by HOD" });
 
+    // Notify ONLY applicant
     await sendMail(
       facultyEmail,
       "Leave Rejected by HOD",
       `
         <h2>Hello ${facultyName},</h2>
         <p>Your leave request has been <b>rejected by the HOD</b>.</p>
+        <p>This decision is final.</p>
       `
     );
   } catch (err) {

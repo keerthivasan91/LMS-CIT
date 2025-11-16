@@ -1,6 +1,6 @@
-const pool = require('../config/db');
-const sendMail = require('../config/mailer');
-const sendSMS = require('../config/sms');
+const pool = require("../config/db");
+const sendMail = require("../config/mailer");
+const sendSMS = require("../config/sms");
 
 /* =============================================================
    1. GET SUBSTITUTE REQUESTS FOR LOGGED-IN USER
@@ -13,13 +13,14 @@ async function substituteRequestsForUser(req, res, next) {
       `SELECT 
           a.arrangement_id,
           lr.leave_id,
-          lr.user_id,
           lr.leave_type,
           lr.start_date,
+          lr.start_session,
           lr.end_date,
+          lr.end_session,
           lr.days,
           lr.reason,
-          a.status,
+          a.status AS substitute_status,
           a.responded_on,
           u.name AS requester_name,
           u.email AS requester_email,
@@ -28,8 +29,7 @@ async function substituteRequestsForUser(req, res, next) {
        JOIN leave_requests lr ON a.leave_id = lr.leave_id
        JOIN users u ON lr.user_id = u.user_id
        WHERE a.substitute_id = ?
-       ORDER BY a.arrangement_id DESC
-       LIMIT 20`,
+       ORDER BY a.arrangement_id DESC`,
       [user_id]
     );
 
@@ -40,7 +40,7 @@ async function substituteRequestsForUser(req, res, next) {
 }
 
 /* =============================================================
-   2. ACCEPT SUBSTITUTE REQUEST
+   2. ACCEPT SUBSTITUTE REQUEST  (Final Workflow)
 ============================================================= */
 async function acceptSubstitute(req, res, next) {
   const arrangementId = req.params.arrangementId;
@@ -50,11 +50,13 @@ async function acceptSubstitute(req, res, next) {
   try {
     await conn.beginTransaction();
 
-    // Fetch original request info
+    /* ------------------------------------------------------------
+       Fetch leave + applicant info
+    -------------------------------------------------------------*/
     const [rows] = await conn.query(
       `SELECT 
           a.arrangement_id,
-          lr.leave_id,
+          a.leave_id,
           lr.user_id,
           u.email,
           u.phone,
@@ -67,48 +69,60 @@ async function acceptSubstitute(req, res, next) {
       [arrangementId]
     );
 
-    if (!rows.length) {
-      throw new Error("Substitute request not found");
-    }
+    if (!rows.length) throw new Error("Substitute request not found");
 
-    const reqInfo = rows[0];
+    const info = rows[0];
 
-    // Update arrangements table
+    /* ------------------------------------------------------------
+       Step 1 — Update arrangement
+    -------------------------------------------------------------*/
     await conn.query(
-      `UPDATE arrangements
-       SET status='accepted',
+      `UPDATE arrangements 
+       SET status = 'accepted',
            responded_on = NOW()
        WHERE arrangement_id = ?`,
       [arrangementId]
     );
 
-    // Update leave_requests table
+    /* ------------------------------------------------------------
+       Step 2 — Update leave_requests
+       substitute_status = accepted
+       hod_status = pending  
+       principal_status = NULL
+       final_status remains NULL
+    -------------------------------------------------------------*/
     await conn.query(
-      `UPDATE leave_requests
+      `UPDATE leave_requests 
        SET substitute_status='accepted',
+           hod_status='pending',
+           principal_status=NULL,
            updated_at = NOW()
        WHERE leave_id = ?`,
-      [reqInfo.leave_id]
+      [info.leave_id]
     );
 
     await conn.commit();
 
-    // Email Notification
-    await sendMail(
-      reqInfo.email,
-      "Substitute Request Accepted",
-      `
-        <h2>Substitute Request Accepted</h2>
-        <p>Hello ${reqInfo.name},</p>
-        <p>Your substitute arrangement request has been <b>accepted</b>.</p>
-      `
-    );
+    /* ------------------------------------------------------------
+       Step 3 — Notify applicant only
+    -------------------------------------------------------------*/
+    if (info.email) {
+      await sendMail(
+        info.email,
+        "Substitute Accepted",
+        `
+          <h2>Hello ${info.name},</h2>
+          <p>Your substitute has <b>accepted</b> your request.</p>
+          <p>Your leave has now moved to <b>HOD approval stage</b>.</p>
+        `
+      );
+    }
 
-    // SMS Notification
-    await sendSMS(reqInfo.phone, "Your substitute request has been accepted.");
+    if (info.phone) {
+      await sendSMS(info.phone, "Your substitute accepted your request. Sent to HOD.");
+    }
 
     res.json({ ok: true, message: "Substitute accepted" });
-
   } catch (err) {
     await conn.rollback();
     next(err);
@@ -118,7 +132,7 @@ async function acceptSubstitute(req, res, next) {
 }
 
 /* =============================================================
-   3. REJECT SUBSTITUTE REQUEST
+   3. REJECT SUBSTITUTE REQUEST  (Final Workflow)
 ============================================================= */
 async function rejectSubstitute(req, res, next) {
   const arrangementId = req.params.arrangementId;
@@ -128,11 +142,13 @@ async function rejectSubstitute(req, res, next) {
   try {
     await conn.beginTransaction();
 
-    // Fetch request info
+    /* ------------------------------------------------------------
+       Fetch leave + applicant info
+    -------------------------------------------------------------*/
     const [rows] = await conn.query(
       `SELECT 
           a.arrangement_id,
-          lr.leave_id,
+          a.leave_id,
           lr.user_id,
           u.email,
           u.phone,
@@ -145,13 +161,13 @@ async function rejectSubstitute(req, res, next) {
       [arrangementId]
     );
 
-    if (!rows.length) {
-      throw new Error("Substitute request not found");
-    }
+    if (!rows.length) throw new Error("Substitute request not found");
 
-    const reqInfo = rows[0];
+    const info = rows[0];
 
-    // Update arrangement
+    /* ------------------------------------------------------------
+       Step 1 — Update arrangement
+    -------------------------------------------------------------*/
     await conn.query(
       `UPDATE arrangements
        SET status='rejected',
@@ -160,34 +176,46 @@ async function rejectSubstitute(req, res, next) {
       [arrangementId]
     );
 
-    // Update leave request
+    /* ------------------------------------------------------------
+       Step 2 — Update leave_requests
+       substitute_status = rejected
+       hod_status = NULL
+       principal_status = NULL
+       final_status = rejected
+    -------------------------------------------------------------*/
     await conn.query(
       `UPDATE leave_requests
        SET substitute_status='rejected',
+           hod_status=NULL,
+           principal_status=NULL,
            final_status='rejected',
            updated_at = NOW()
        WHERE leave_id = ?`,
-      [reqInfo.leave_id]
+      [info.leave_id]
     );
 
     await conn.commit();
 
-    // Email
-    await sendMail(
-      reqInfo.email,
-      "Substitute Request Rejected",
-      `
-        <h2>Substitute Request Rejected</h2>
-        <p>Hello ${reqInfo.name},</p>
-        <p>Your substitute arrangement request has been <b>rejected</b>.</p>
-      `
-    );
+    /* ------------------------------------------------------------
+       Step 3 — Notify applicant only
+    -------------------------------------------------------------*/
+    if (info.email) {
+      await sendMail(
+        info.email,
+        "Substitute Rejected",
+        `
+          <h2>Hello ${info.name},</h2>
+          <p>Your substitute has <b>rejected</b> your request.</p>
+          <p>Your leave request is now <b>rejected</b> and closed.</p>
+        `
+      );
+    }
 
-    // SMS
-    await sendSMS(reqInfo.phone, "Your substitute request has been rejected.");
+    if (info.phone) {
+      await sendSMS(info.phone, "Your substitute rejected the request. Leave closed.");
+    }
 
     res.json({ ok: true, message: "Substitute rejected" });
-
   } catch (err) {
     await conn.rollback();
     next(err);
