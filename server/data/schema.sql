@@ -51,7 +51,7 @@ CREATE TABLE leave_requests (
   leave_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(50) NOT NULL,
   department_code VARCHAR(20) NOT NULL,
-  leave_type ENUM('casual', 'sick', 'earned', 'compensation', 'other') NOT NULL,
+  leave_type ENUM('Casual Leave', 'OOD', 'Earned Leave', 'Permitted Leave', 'Special Casual Leave','Loss of Pay Leave','Compensatory Off Leave') NOT NULL,
   start_date DATE NOT NULL,
   start_session ENUM('Forenoon','Afternoon') NOT NULL,
   end_date DATE NOT NULL,
@@ -77,14 +77,10 @@ CREATE TABLE leave_requests (
 
   substitute_id VARCHAR(50) NULL,
   substitute_status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-  hod_status ENUM('pending','approved','rejected') DEFAULT 'pending',
-  principal_status ENUM('pending','approved','rejected') DEFAULT 'pending',
+  hod_status ENUM('pending','approved','rejected') DEFAULT null,
+  principal_status ENUM('pending','approved','rejected') DEFAULT null,
   final_status ENUM('pending','approved','rejected','cancelled') DEFAULT 'pending',
   
-  hod_remarks TEXT,
-  principal_remarks TEXT,
-  substitute_remarks TEXT,
-
   applied_on DATETIME DEFAULT CURRENT_TIMESTAMP,
   processed_on DATETIME NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
