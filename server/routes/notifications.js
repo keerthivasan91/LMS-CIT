@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/authMiddleware");
+const sessionAuth = require("../middleware/sessionAuth");
 
 const {
   getNotifications,
@@ -9,8 +9,8 @@ const {
 } = require("../controllers/notificationController");
 
 // All routes here require login
-router.get("/", auth, getNotifications);
-router.post("/read/:id", auth, markAsRead);
-router.post("/read-all", auth, markAllAsRead);
+router.get("/", sessionAuth, getNotifications);
+router.post("/read/:id", sessionAuth, markAsRead);
+router.post("/read-all", sessionAuth, markAllAsRead);
 
 module.exports = router;

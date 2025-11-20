@@ -1,6 +1,6 @@
     const express = require("express");
     const router = express.Router();
-    const auth = require("../middleware/authMiddleware");
+    const sessionAuth = require("../middleware/sessionAuth");
 
     const {
     substituteRequestsForUser,
@@ -8,8 +8,8 @@
     rejectSubstitute
     } = require("../controllers/substituteController");
 
-    router.get("/requests", auth(), substituteRequestsForUser);
-    router.post("/accept/:arrangementId", auth(), acceptSubstitute);
-    router.post("/reject/:arrangementId", auth(), rejectSubstitute);
+    router.get("/requests",sessionAuth, substituteRequestsForUser);
+    router.post("/accept/:arrangementId", sessionAuth, acceptSubstitute);
+    router.post("/reject/:arrangementId", sessionAuth, rejectSubstitute);
 
     module.exports = router;
