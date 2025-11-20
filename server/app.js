@@ -16,6 +16,8 @@ const hodRoutes = require("./routes/hod");
 const adminRoutes = require("./routes/admin");
 const profileRoutes = require("./routes/profile");
 const holidayRoutes = require("./routes/holiday");
+const changePasswordRoutes = require("./routes/changepassword");
+const forgotPasswordRoutes = require("./routes/forgotpassword");
 
 
 const app = express();
@@ -35,7 +37,8 @@ app.use(cors({
 }));
 
 // API routes
-// API routes
+app.use("/", changePasswordRoutes);
+app.use("/", forgotPasswordRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api", branchRoutes);
 app.use("/api", leaveRoutes);
@@ -45,6 +48,8 @@ app.use("/api", adminRoutes);
 app.use("/api", profileRoutes);
 app.use("/api/holidays", holidayRoutes);        // <-- better consistency
 app.use("/api/notifications", require("./routes/notifications")); // <-- FIXED
+app.use("/admin", adminRoutes);
+
 
 
 // Health check

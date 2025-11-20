@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 
 /**
- * Get all faculty branches (departments)
+ * Get all faculty branches (departments) based on existing users
  */
 async function getBranches(req, res, next) {
   try {
@@ -17,6 +17,30 @@ async function getBranches(req, res, next) {
     return res.json({
       ok: true,
       branches: rows.map(r => r.department_code)
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * NEW: Get all branches from departments table
+ */
+async function getAllBranches(req, res, next) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT department_code, department_name 
+       FROM departments
+       ORDER BY department_code`
+    );
+
+    return res.json({
+      ok: true,
+      branches: rows.map(r => ({
+        code: r.department_code,
+        name: r.department_name
+      }))
     });
 
   } catch (err) {
@@ -60,5 +84,6 @@ async function getStaffByBranch(req, res, next) {
 
 module.exports = {
   getBranches,
+  getAllBranches,   // NEW FUNCTION
   getStaffByBranch
 };
