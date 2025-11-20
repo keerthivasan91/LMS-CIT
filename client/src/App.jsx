@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Layout from "./components/layout";
 import AdminAddUser from "./pages/AdminAddUser";
+import AdminResetRequest from "./pages/AdminResetRequests";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import Dashboard from "./pages/Dashboard";
@@ -14,7 +15,6 @@ import Profile from "./pages/Profile";
 import HODApproval from "./pages/HODApproval";
 import HODLeaveBalance from "./pages/HODLeaveBalance";
 import PrincipalApprovals from "./pages/PrincipalApprovals";
-
 import ProtectedRoute from "./utils/ProtectedRoute";
 
 const App = () => {
@@ -127,6 +127,25 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="admin/reset-requests"
+          element={
+            <ProtectedRoute allowed={["admin"]}>
+              <AdminResetRequest />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="admin/reset-password/:uid"
+          element={
+            <ProtectedRoute allowed={["admin"]}>
+              <ChangePassword mode="admin-reset" />
+            </ProtectedRoute>
+          }
+        />
+
+
 
 
         {/* DEFAULT */}

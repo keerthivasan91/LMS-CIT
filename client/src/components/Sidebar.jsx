@@ -85,15 +85,19 @@ const Sidebar = ({ pendingSubs = 0, pendingHod = 0, pendingPrincipal = 0 }) => {
             <li>
               <NavLink to="/admin/add-user">Add User</NavLink>
             </li>
+
+            <li>
+              <NavLink to="/admin/reset-requests">Password Reset Requests</NavLink>
+            </li>
           </>
         )}
       </ul>
 
-      <div className="stats">
+      {/*<div className="stats">
         <p><strong>{user?.name || "Guest"}</strong></p>
         <p>{user?.role?.toUpperCase() || "Not logged in"}</p>
-        <p>{user?.department || "N/A"}</p>
-      </div>
+        <p>{user?.department_code || "N/A"}</p>
+      </div>*/}
     </aside>
   );
 };

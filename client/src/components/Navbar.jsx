@@ -25,7 +25,7 @@ const Navbar = () => {
           <div className="user-info">
             <strong>{user?.name || "Guest"}</strong>
             <br />
-            {(user?.role || "Not logged in").toUpperCase()} - {user?.department || "N/A"}
+            {(user?.role || "Not logged in").toUpperCase()} - {user?.department_code || "N/A"}
           </div>
 
           {/* Logout */}

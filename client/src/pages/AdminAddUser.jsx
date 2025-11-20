@@ -1,25 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "../api/axiosConfig";
 
 const AdminAddUser = () => {
+  const [departments, setDepartments] = useState([]);
+
   const [form, setForm] = useState({
     user_id: "",
     name: "",
     email: "",
     password: "",
     role: "faculty",
-    department: "",
+    department_code: "",
     phone: "",
-    designation: "",
-    date_joined: "",
   });
 
   const [message, setMessage] = useState({ type: "", text: "" });
 
+  // Load department list from departments table
+  const loadDepartments = async () => {
+    try {
+      const res = await axios.get("/api/departments");
+      setDepartments(res.data.branches || []);
+    } catch (err) {
+      console.error("Failed loading departments", err);
+    }
+  };
+
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  // Form handler
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
@@ -35,11 +51,10 @@ const AdminAddUser = () => {
         email: "",
         password: "",
         role: "faculty",
-        department: "",
+        department_code: "",
         phone: "",
-        designation: "",
-        date_joined: "",
       });
+
     } catch (err) {
       setMessage({
         type: "error",
@@ -54,10 +69,7 @@ const AdminAddUser = () => {
         <h2>Add New User</h2>
 
         {message.text && (
-          <div
-            className={message.type === "success" ? "pass" : "error"}
-            style={{ width: "100%" }}
-          >
+          <div className={message.type === "success" ? "pass" : "error"}>
             {message.text}
           </div>
         )}
@@ -106,28 +118,44 @@ const AdminAddUser = () => {
             <option value="staff">Staff</option>
           </select>
 
-          <label>Department</label>
+          {(form.role !== "admin" && form.role !== "principal") && (
+            <>
+              <label>Department</label>
+              <select
+                name="department_code"
+                value={form.department_code}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Select Department --</option>
+                {departments.map((d) => (
+                  <option key={d.code} value={d.code}>
+                    {d.code} - {d.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <label>Designation</label>
           <input
-            name="department"
-            value={form.department}
+            name="desc"
+            value={form.desc}
             onChange={handleChange}
           />
 
           <label>Phone</label>
-          <input name="phone" value={form.phone} onChange={handleChange} />
-
-          <label>Designation</label>
           <input
-            name="designation"
-            value={form.designation}
+            name="phone"
+            value={form.phone}
             onChange={handleChange}
           />
 
-          <label>Date Joined</label>
+          <label>Date Of Joining</label>
           <input
             type="date"
-            name="date_joined"
-            value={form.date_joined}
+            name="date_of_joining"
+            value={form.date_of_joining}
             onChange={handleChange}
           />
 

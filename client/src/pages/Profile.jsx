@@ -18,20 +18,14 @@ const Profile = () => {
 
   // Load profile from backend (optional, if context doesn’t contain everything)
   const loadProfile = async () => {
-    try {
-      const res = await axios.get("/profile");
-      setProfile(res.data);
-    } catch {
-      // fallback to AuthContext
       setProfile({
         name: user?.name || "",
         user_id: user?.user_id || "",
-        department: user?.department || "",
+        department: user?.department_code || "",
         email: user?.email || "",
         phone: user?.phone || "",
         role: user?.role || "",
       });
-    }
   };
 
   useEffect(() => {
