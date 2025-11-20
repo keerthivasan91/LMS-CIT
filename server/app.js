@@ -1,4 +1,5 @@
 require("dotenv").config();
+const session = require("express-session");
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
@@ -21,6 +22,18 @@ const forgotPasswordRoutes = require("./routes/forgotpassword");
 
 
 const app = express();
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "supersecretkey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: (1000 * 60 * 30), // 30 minutes
+    }
+  })
+);
 
 app.use(helmet());
 app.use(express.json({ limit: "10mb" }));
@@ -33,7 +46,8 @@ app.use(rateLimit);
 app.use(cors({
   origin: "http://localhost:3000",
   methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization"
+  allowedHeaders: "Content-Type, Authorization",
+  credentials : true
 }));
 
 // API routes
