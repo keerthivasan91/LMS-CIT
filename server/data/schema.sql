@@ -186,21 +186,17 @@ CREATE TABLE sessions (
   INDEX idx_session_user (user_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE password_reset_tokens (
-  token_id INT AUTO_INCREMENT PRIMARY KEY,
-  token VARCHAR(128) NOT NULL,
-  user_id VARCHAR(50) NOT NULL,
-  expires_at DATETIME NOT NULL,
-  used TINYINT(1) DEFAULT 0,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE password_reset_requests (
+    request_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    status ENUM('pending','resolved') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX (user_id),
+    INDEX (status)
+);
 
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-
-  INDEX idx_reset_user (user_id),
-  INDEX idx_reset_expires (expires_at),
-  INDEX idx_token (token),
-  INDEX idx_used (used)
-) ENGINE=InnoDB;
 
 
 -- Improved view with academic year support
