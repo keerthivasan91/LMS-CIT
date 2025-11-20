@@ -4,54 +4,47 @@ import axios from "../api/axiosConfig";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);     // user object
-  const [token, setToken] = useState(null);   // JWT token
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Login function (stores user + token)
-  const login = (userData, tokenValue) => {
+  // Session-based login: backend sets cookie
+  const login = (userData) => {
     setUser(userData);
-    setToken(tokenValue);
-
-    // Store token in localStorage
-    localStorage.setItem("token", tokenValue);
-    localStorage.setItem("user", JSON.stringify(userData));
-
-    // Attach token to all axios requests
-    axios.defaults.headers.common["Authorization"] = `Bearer ${tokenValue}`;
   };
 
-  // Logout (clear everything)
-  const logout = () => {
+  // Logout — tell backend to destroy session
+  const logout = async () => {
+    try {
+      await axios.post("/api/auth/logout");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+
     setUser(null);
-    setToken(null);
-
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    delete axios.defaults.headers.common["Authorization"];
 
     window.location.href = "/login";
   };
 
-  // Rehydrate user on page load
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-
-      // Set axios token
-      axios.defaults.headers.common["Authorization"] = `Bearer ${storedToken}`;
+  // Rehydrate user from session on page load
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get("/api/auth/me");
+      if (res.data?.user) {
+        setUser(res.data.user);
+      }
+    } catch (err) {
+      setUser(null);
     }
 
     setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchUser();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

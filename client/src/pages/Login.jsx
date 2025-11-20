@@ -4,7 +4,7 @@ import AuthContext from "../context/AuthContext";
 import "../App.css";
 
 const Login = () => {
-  const { login } = useContext(AuthContext);
+  const { setUser } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     user_id: "",
@@ -13,7 +13,6 @@ const Login = () => {
 
   const [error, setError] = useState("");
 
-  // Update local form state
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -25,20 +24,20 @@ const Login = () => {
     try {
       const res = await axios.post("/api/auth/login", form);
 
-      if (!res.data?.token || !res.data?.user) {
+      if (!res.data?.user) {
         setError("Invalid response from server");
         return;
       }
 
-      // Call AuthContext login(user, token)
-      login(res.data.user, res.data.token);
+      // Save user in context (session cookie stored automatically)
+      setUser(res.data.user);
 
-      // Redirect to dashboard
+      // Redirect after success
       window.location.href = "/dashboard";
 
     } catch (err) {
       console.error(err);
-      setError("Invalid user ID or password");
+      setError(err.response?.data?.message || "Invalid user ID or password");
     }
   };
 
