@@ -3,7 +3,6 @@ import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
 import "../App.css";
 
-
 const HODLeaveBalance = () => {
   const { user } = useContext(AuthContext);
 
@@ -12,10 +11,12 @@ const HODLeaveBalance = () => {
 
   const loadData = async () => {
     try {
-      const res = await axios.get("/hod/leave-balance"); // backend endpoint required
+      const res = await axios.get("/api/hod/leave_balance");
+
       setLeaveBalances(res.data.leave_balances || []);
-      setDepartment(res.data.department || user?.department || "");
+      setDepartment(user?.department_code || "");
     } catch (error) {
+      console.error("Leave balance fetch error:", error);
       setLeaveBalances([]);
     }
   };
@@ -36,11 +37,11 @@ const HODLeaveBalance = () => {
             <thead>
               <tr>
                 <th>Faculty</th>
-                <th>Total Applications</th>
-                <th>Approved</th>
-                <th>Rejected</th>
-                <th>Pending</th>
-                <th>Total Days Taken</th>
+                <th>Casual (Used / Total)</th>
+                <th>Sick (Used / Total)</th>
+                <th>Earned (Used / Total)</th>
+                <th>Comp Off (Used / Total)</th>
+                <th>Remaining (Total)</th>
               </tr>
             </thead>
 
@@ -48,11 +49,29 @@ const HODLeaveBalance = () => {
               {leaveBalances.map((lb, index) => (
                 <tr key={index}>
                   <td>{lb.name}</td>
-                  <td>{lb.total || 0}</td>
-                  <td>{lb.approved || 0}</td>
-                  <td>{lb.rejected || 0}</td>
-                  <td>{lb.pending || 0}</td>
-                  <td>{lb.total_days || 0}</td>
+
+                  <td>
+                    {lb.casual_used} / {lb.casual_total}
+                  </td>
+
+                  <td>
+                    {lb.sick_used} / {lb.sick_total}
+                  </td>
+
+                  <td>
+                    {lb.earned_used} / {lb.earned_total}
+                  </td>
+
+                  <td>
+                    {lb.comp_used} / {lb.comp_total}
+                  </td>
+
+                  <td>
+                    {lb.casual_remaining +
+                      lb.sick_remaining +
+                      lb.earned_remaining +
+                      lb.comp_remaining}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -60,7 +79,7 @@ const HODLeaveBalance = () => {
         </div>
       ) : (
         <div className="no-requests">
-          <p>No leave records found for your department.</p>
+          <p>No leave balance records found.</p>
         </div>
       )}
     </div>
