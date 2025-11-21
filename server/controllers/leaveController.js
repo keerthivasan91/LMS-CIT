@@ -22,7 +22,7 @@ async function applyLeave(req, res, next) {
       end_date,
       end_session = "AN",
       reason = '',
-      substitute_id = null
+      substitute_id = ''
     } = req.body;
 
     const startSessionDB = start_session === "FN" ? "Forenoon" : "Afternoon";

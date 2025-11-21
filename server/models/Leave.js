@@ -232,6 +232,63 @@ async function updatePrincipalStatus(leaveId, status) {
 /* ============================================================
    11) HOD DEPARTMENT LEAVES
 ============================================================ */
+async function getLeaveBalance(department_code) {
+  // 1. Get department faculty + staff (hod, faculty, admin, principal included if needed)
+  const [users] = await pool.query(
+    `SELECT user_id, name, role
+     FROM users
+     WHERE department_code = ? AND is_active = 1`,
+    [department_code]
+  );
+
+  const academicYear = new Date().getFullYear();
+  const result = [];
+
+  // 2. Loop through each user and get their leave balance
+  for (const user of users) {
+    const [bal] = await pool.query(
+      `SELECT *
+       FROM leave_balance
+       WHERE user_id = ? AND academic_year = ? 
+       LIMIT 1`,
+      [user.user_id, academicYear]
+    );
+
+    // If no leave balance row exists, send zeros
+    const balance = bal[0] || {
+      casual_total: 0, casual_used: 0,
+      sick_total: 0, sick_used: 0,
+      earned_total: 0, earned_used: 0,
+      comp_total: 0, comp_used: 0,
+    };
+
+    result.push({
+      user_id: user.user_id,
+      name: user.name,
+      role: user.role,
+      academic_year: academicYear,
+
+      casual_total: balance.casual_total,
+      casual_used: balance.casual_used,
+      casual_remaining: balance.casual_total - balance.casual_used,
+
+      sick_total: balance.sick_total,
+      sick_used: balance.sick_used,
+      sick_remaining: balance.sick_total - balance.sick_used,
+
+      earned_total: balance.earned_total,
+      earned_used: balance.earned_used,
+      earned_remaining: balance.earned_total - balance.earned_used,
+
+      comp_total: balance.comp_total,
+      comp_used: balance.comp_used,
+      comp_remaining: balance.comp_total - balance.comp_used
+    });
+  }
+
+  return result;
+}
+
 async function getDepartmentLeaves(department_code) {
   const [rows] = await pool.query(
     `SELECT lr.*, 
@@ -246,6 +303,9 @@ async function getDepartmentLeaves(department_code) {
   );
   return rows;
 }
+
+
+
 
 /* ============================================================
    12) ALL DEPARTMENTS
@@ -303,6 +363,7 @@ module.exports = {
   updateSubstituteStatus,
   updateHodStatus,
   updatePrincipalStatus,
+  getLeaveBalance,
   getDepartmentLeaves,
   getDepartments,
   getInstitutionLeaves,
