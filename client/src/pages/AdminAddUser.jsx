@@ -20,7 +20,7 @@ const AdminAddUser = () => {
   const loadDepartments = async () => {
     try {
       const res = await axios.get("/api/departments");
-      setDepartments(res.data.branches || []);
+      setDepartments(res.data.departments || []);
     } catch (err) {
       console.error("Failed loading departments", err);
     }
@@ -41,7 +41,7 @@ const AdminAddUser = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      const res = await axios.post("/admin/add-user", form);
+      const res = await axios.post("/api/add-user", form);
 
       setMessage({ type: "success", text: res.data.message });
 
@@ -129,8 +129,8 @@ const AdminAddUser = () => {
               >
                 <option value="">-- Select Department --</option>
                 {departments.map((d) => (
-                  <option key={d.code} value={d.code}>
-                    {d.code} - {d.name}
+                  <option key={d} value={d}>
+                    {d}
                   </option>
                 ))}
               </select>
