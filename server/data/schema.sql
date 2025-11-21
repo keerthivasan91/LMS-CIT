@@ -173,18 +173,6 @@ CREATE TABLE leave_balance (
   INDEX idx_academic_year (academic_year)
 ) ENGINE=InnoDB;
 
-CREATE TABLE sessions (
-  session_id VARCHAR(128) PRIMARY KEY,
-  user_id VARCHAR(50) NULL,
-  data JSON,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  expires_at DATETIME,
-
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-
-  INDEX idx_session_expiry (expires_at),
-  INDEX idx_session_user (user_id)
-) ENGINE=InnoDB;
 
 CREATE TABLE password_reset_requests (
     request_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -196,6 +184,60 @@ CREATE TABLE password_reset_requests (
     INDEX (user_id),
     INDEX (status)
 );
+DELIMITER $$
+
+CREATE TRIGGER trg_add_leave_balance
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    DECLARE casual INT DEFAULT 0;
+    DECLARE sick INT DEFAULT 0;
+    DECLARE earned INT DEFAULT 0;
+    DECLARE comp INT DEFAULT 0;
+
+    -- Assign leave totals based on role
+    IF NEW.role = 'faculty' THEN
+        SET casual = 12;
+        SET sick = 12;
+        SET earned = 6;
+
+    ELSEIF NEW.role = 'hod' THEN
+        SET casual = 12;
+        SET sick = 12;
+        SET earned = 6;
+
+    ELSEIF NEW.role = 'staff' THEN
+        SET casual = 10;
+        SET sick = 10;
+        SET earned = 4;
+
+    ELSEIF NEW.role IN ('admin', 'principal') THEN
+        SET casual = 0;
+        SET sick = 0;
+        SET earned = 0;
+        SET comp = 0;
+    END IF;
+
+    INSERT INTO leave_balance (
+        user_id,
+        academic_year,
+        casual_total, casual_used,
+        sick_total, sick_used,
+        earned_total, earned_used,
+        comp_total, comp_used
+    ) VALUES (
+        NEW.user_id,
+        YEAR(CURDATE()),
+        casual, 0,
+        sick, 0,
+        earned, 0,
+        comp, 0
+    );
+
+END$$
+
+DELIMITER ;
+
 
 
 
