@@ -5,7 +5,7 @@ async function approveLeave(leaveId) {
   const applicant = await LeaveModel.getLeaveApplicant(leaveId);
   if (!applicant) throw new Error("Leave not found");
 
-  await LeaveModel.updateHodStatus(leaveId, "accepted");
+  await LeaveModel.updateHodStatus(leaveId, "approved");
 
   // Send mail
   await sendMail(
