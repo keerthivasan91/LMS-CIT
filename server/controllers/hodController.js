@@ -8,7 +8,7 @@ async function hodDashboard(req, res, next) {
     }
 
     const dept = req.user.department_code;
-    const requests = await LeaveModel.getPendingHodRequests(dept);
+    const requests = await LeaveModel.getPendingHodRequests(dept,req.user.user_id);
 
     res.json({ requests });
   } catch (err) {

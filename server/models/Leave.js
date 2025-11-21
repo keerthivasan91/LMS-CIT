@@ -14,9 +14,45 @@ async function insertLeaveRequest(data) {
     end_date,
     end_session,
     reason,
-    substitute_id,
-    substitute_status
+    substitute_id
   } = data;
+
+  // Get role of applicant
+  const [[user]] = await pool.query(
+    `SELECT role FROM users WHERE user_id = ? LIMIT 1`,
+    [user_id]
+  );
+
+  let substitute_status = null;
+  let hod_status = "pending";
+  let principal_status = "pending";
+
+  /* ============================================================
+      CASE 1: HOD without substitute → skip HOD
+  ============================================================ */  
+  if (user.role === "hod" && !substitute_id) {
+    substitute_status = null;
+    hod_status = "approved";         // IMPORTANT
+    principal_status = "pending";   // goes directly to principal
+  }
+
+  /* ============================================================
+      CASE 2: HOD with substitute → wait for substitute approval
+  ============================================================ */  
+  else if (user.role === "hod" && substitute_id) {
+    substitute_status = "pending";
+    hod_status = "pending";         // skip HOD approval
+    principal_status = null;        // principal waits until substitute accepts
+  }
+
+  /* ============================================================
+      CASE 3: Faculty/staff
+  ============================================================ */
+  else {
+    substitute_status = substitute_id ? "pending" : null;
+    hod_status = "pending";
+    principal_status = null;
+  }
 
   const [result] = await pool.query(
     `INSERT INTO leave_requests
@@ -34,15 +70,16 @@ async function insertLeaveRequest(data) {
       end_session,
       reason,
       substitute_id,
-      substitute_status,        // pending or null
-      "pending",                // hod_status
-      "pending",                // principal_status
-      "pending"                 // final_status
+      substitute_status,
+      hod_status,
+      principal_status,
+      "pending"
     ]
   );
 
   return result.insertId;
 }
+
 
 /* ============================================================
    2) INSERT SUBSTITUTE ARRANGEMENT
@@ -178,17 +215,19 @@ async function updateHodStatus(leaveId, status) {
 /* ============================================================
    HOD – GET PENDING REQUESTS
 ============================================================ */
-async function getPendingHodRequests(department_code) {
+async function getPendingHodRequests(department_code, hod_id) {
   const [rows] = await pool.query(
     `SELECT lr.*, u.name AS requester_name 
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
      WHERE lr.hod_status = 'pending'
-     AND u.department_code = ?`,
-    [department_code]
+       AND u.department_code = ?
+       AND lr.user_id != ?`,
+    [department_code, hod_id]
   );
   return rows;
 }
+
 
 /* ============================================================
    HOD – APPROVE LEAVE (simple version for Jest tests)

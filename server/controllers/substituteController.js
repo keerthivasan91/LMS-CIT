@@ -40,7 +40,7 @@ async function substituteRequestsForUser(req, res, next) {
 }
 
 /* =============================================================
-   2. ACCEPT SUBSTITUTE REQUEST  (Final Workflow)
+   2. ACCEPT SUBSTITUTE REQUEST  (Updated for HOD flow)
 ============================================================= */
 async function acceptSubstitute(req, res, next) {
   const arrangementId = req.params.arrangementId;
@@ -51,7 +51,7 @@ async function acceptSubstitute(req, res, next) {
     await conn.beginTransaction();
 
     /* ------------------------------------------------------------
-       Fetch leave + applicant info
+       Fetch leave + applicant info INCLUDING role
     -------------------------------------------------------------*/
     const [rows] = await conn.query(
       `SELECT 
@@ -60,7 +60,8 @@ async function acceptSubstitute(req, res, next) {
           lr.user_id,
           u.email,
           u.phone,
-          u.name
+          u.name,
+          u.role
        FROM arrangements a
        JOIN leave_requests lr ON a.leave_id = lr.leave_id
        JOIN users u ON lr.user_id = u.user_id
@@ -74,7 +75,7 @@ async function acceptSubstitute(req, res, next) {
     const info = rows[0];
 
     /* ------------------------------------------------------------
-       Step 1 — Update arrangement
+       Step 1 — Update arrangement (accepted)
     -------------------------------------------------------------*/
     await conn.query(
       `UPDATE arrangements 
@@ -86,20 +87,32 @@ async function acceptSubstitute(req, res, next) {
 
     /* ------------------------------------------------------------
        Step 2 — Update leave_requests
-       substitute_status = accepted
-       hod_status = pending  
-       principal_status = NULL
-       final_status remains NULL
+       SPECIAL LOGIC FOR HOD
     -------------------------------------------------------------*/
-    await conn.query(
-      `UPDATE leave_requests 
-       SET substitute_status='accepted',
-           hod_status='pending',
-           principal_status=NULL,
-           updated_at = NOW()
-       WHERE leave_id = ?`,
-      [info.leave_id]
-    );
+
+    if (info.role === "hod") {
+      // HOD applicant → Skip HOD approval
+      await conn.query(
+        `UPDATE leave_requests 
+         SET substitute_status='accepted',
+             hod_status='approved',
+             principal_status='pending',
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [info.leave_id]
+      );
+    } else {
+      // Normal faculty/staff flow
+      await conn.query(
+        `UPDATE leave_requests 
+         SET substitute_status='accepted  ',
+             hod_status='pending',
+             principal_status=NULL,
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [info.leave_id]
+      );
+    }
 
     await conn.commit();
 
@@ -107,22 +120,26 @@ async function acceptSubstitute(req, res, next) {
        Step 3 — Notify applicant only
     -------------------------------------------------------------*/
     if (info.email) {
+      const nextStage = info.role === "hod" ? "Principal" : "HOD";
+
       await sendMail(
         info.email,
         "Substitute Accepted",
         `
           <h2>Hello ${info.name},</h2>
           <p>Your substitute has <b>accepted</b> your request.</p>
-          <p>Your leave has now moved to <b>HOD approval stage</b>.</p>
+          <p>Your leave has now moved to <b>${nextStage} approval stage</b>.</p>
         `
       );
     }
 
     if (info.phone) {
-      await sendSMS(info.phone, "Your substitute accepted your request. Sent to HOD.");
+      const nextStage = info.role === "hod" ? "Principal" : "HOD";
+      await sendSMS(info.phone, `Your substitute accepted. Sent to ${nextStage}.`);
     }
 
     res.json({ ok: true, message: "Substitute accepted" });
+
   } catch (err) {
     await conn.rollback();
     next(err);
