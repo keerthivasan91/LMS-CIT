@@ -308,16 +308,15 @@ const LeaveHistory = () => {
 
           {institutionLeaves.length ? (
             <div className="table-wrapper">
-              <table className="history-table" style={{ minWidth: 1200 }}>
+              <table className="history-table" style={{ minWidth: 1000 }}>
                 <thead>
                   <tr>
                     <th>ID</th><th>Requester</th><th>Department</th><th>Type</th>
-                    <th>Start</th><th>Session</th>
-                    <th>End</th><th>Session</th>
-                    <th>Days</th><th>Substitute</th>
-                    <th>Sub Status</th><th>HOD</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Days</th>
                     <th>Principal</th><th>Final</th>
-                    <th>Reason</th><th>Applied</th>
+                    <th>Applied</th>
                   </tr>
                 </thead>
 
@@ -330,20 +329,13 @@ const LeaveHistory = () => {
                       <td>{l.type}</td>
 
                       <td>{formatDate(l.start_date)}</td>
-                      <td>{l.start_session}</td>
 
                       <td>{formatDate(l.end_date)}</td>
-                      <td>{l.end_session}</td>
 
                       <td>{l.days}</td>
-                      <td>{l.substitute || "None"}</td>
-
-                      <td>{l.sub_status}</td>
-                      <td>{l.hod_status}</td>
                       <td>{l.principal_status}</td>
                       <td>{l.final_status}</td>
 
-                      <td>{l.reason}</td>
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
