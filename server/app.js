@@ -30,7 +30,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: false,
-      maxAge: (1000 * 60 * 30), // 30 minutes
+      maxAge: (1000 * 60 * 60), // 60 minutes
     }
   })
 );
@@ -62,7 +62,7 @@ app.use("/api", adminRoutes);
 app.use("/api", profileRoutes);
 app.use("/api/holidays", holidayRoutes);        // <-- better consistency
 app.use("/api/notifications", require("./routes/notifications")); // <-- FIXED
-app.use("/admin", adminRoutes);
+
 
 
 
