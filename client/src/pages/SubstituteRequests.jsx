@@ -31,7 +31,7 @@ const SubstituteRequests = () => {
   const handleAccept = async (id) => {
     try {
       await axios.post(
-        `/api/substitute/approve/${id}`,
+        `/api/substitute/accept/${id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
