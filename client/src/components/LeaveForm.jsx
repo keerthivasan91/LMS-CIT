@@ -79,29 +79,33 @@ const LeaveForm = ({
         required
       ></textarea>
 
+
       {/* ---------------------------------------------------------
-          SUBSTITUTE SELECTION (STAFF)
+          SUBSTITUTE FOR STAFF (only staff visible)
       --------------------------------------------------------- */}
       {role === "staff" && (
         <>
-          <label>Select Substitute Faculty (Optional)</label>
+          <label>Select Substitute Staff (Optional)</label>
           <select
             name="substitute_user_id"
             value={form.substitute_user_id}
             onChange={onChange}
           >
             <option value="">-- None --</option>
+
             {facultyList.map((f) => (
               <option key={f.user_id} value={f.user_id}>
-                {f.name} ({f.department_code})
+                {f.name}
               </option>
             ))}
           </select>
         </>
       )}
 
+
       {/* ---------------------------------------------------------
-          SUBSTITUTE SELECTION (FACULTY / HOD)
+          SUBSTITUTE FOR FACULTY + HOD
+          (can choose other departments but NOT management depts)
       --------------------------------------------------------- */}
       {role !== "staff" && role !== "admin" && (
         <>
@@ -112,6 +116,7 @@ const LeaveForm = ({
             onChange={onChange}
           >
             <option value="">-- Select Department --</option>
+
             {departments.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -126,6 +131,7 @@ const LeaveForm = ({
             onChange={onChange}
           >
             <option value="">-- None --</option>
+
             {staffList.map((s) => (
               <option key={s.user_id} value={s.user_id}>
                 {s.name}
