@@ -5,7 +5,7 @@ import LeaveForm from "../components/LeaveForm";
 import "../App.css";
 
 const ApplyLeave = () => {
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     leave_type: "Casual Leave",
@@ -19,60 +19,62 @@ const ApplyLeave = () => {
     department_select: "",
   });
 
-  const [facultyList, setFacultyList] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [staffList, setStaffList] = useState([]);
+  const [facultyList, setFacultyList] = useState([]);  // STAFF uses this
+  const [departments, setDepartments] = useState([]);  // others
+  const [staffList, setStaffList] = useState([]);      // substitutes for faculty/hod
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // STAFF → load all faculty substitutes
-  const loadFaculty = async () => {
+  /* ------------------------------------------------------------
+     1) STAFF → Load faculty substitutes from their own department
+  ------------------------------------------------------------ */
+  const loadFacultyForStaff = async () => {
     try {
       if (user?.role === "staff") {
-        const res = await axios.get("/api/staff/" + user.department, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const branch = user.department_code;
+        const res = await axios.get(`/api/staff/${branch}`);
         setFacultyList(res.data.staff || []);
       }
     } catch (err) {
-      console.error("Failed load faculty", err);
+      console.error("Failed to load faculty for staff", err);
     }
   };
 
-  // FACULTY / HOD → load departments
+  /* ------------------------------------------------------------
+     2) FACULTY/HOD → Load departments
+  ------------------------------------------------------------ */
   const loadDepartments = async () => {
     try {
-      if (user?.role !== "staff") {
-        const res = await axios.get("/api/branches", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      if (user?.role === "faculty" || user?.role === "hod") {
+        const res = await axios.get(`/api/branches`);
         setDepartments(res.data.branches || []);
       }
     } catch (err) {
-      console.error("Failed load departments", err);
+      console.error("Failed to load departments", err);
     }
   };
 
-  // load staff list when a department is chosen
-  const loadStaff = async () => {
+  /* ------------------------------------------------------------
+     3) FACULTY/HOD → Load substitute faculty list when selecting a dept
+  ------------------------------------------------------------ */
+  const loadSubstituteFaculty = async () => {
     try {
       if (form.department_select) {
-        const res = await axios.get(
-          `/api/staff/${form.department_select}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setStaffList(res.data.staff || []);
+        const res = await axios.get(`/api/faculty/${form.department_select}`);
+        setStaffList(res.data.faculty || []);
       } else {
         setStaffList([]);
       }
     } catch (err) {
-      console.error("Failed load staff", err);
+      console.error("Failed to load substitute staff", err);
     }
   };
 
-  // Submit leave
+  /* ------------------------------------------------------------
+     4) Submit leave request
+  ------------------------------------------------------------ */
   const submitForm = async (e) => {
     e.preventDefault();
 
@@ -84,17 +86,14 @@ const ApplyLeave = () => {
       end_session: form.end_session,
       reason: form.reason,
       arrangement_details: form.arrangement_details,
-      substitute_user_id: form.substitute_user_id || null,
+      substitute_id: form.substitute_user_id || null,
     };
 
     try {
-      await axios.post("/api/apply", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post("/api/apply", payload);
 
       alert("Leave applied successfully");
 
-      // Reset form
       setForm({
         leave_type: "Casual Leave",
         start_date: "",
@@ -107,18 +106,24 @@ const ApplyLeave = () => {
         department_select: "",
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error submitting leave", err);
       alert("Error submitting leave");
     }
   };
 
+  /* ------------------------------------------------------------
+     5) Initial load
+  ------------------------------------------------------------ */
   useEffect(() => {
-    loadFaculty();
+    loadFacultyForStaff();
     loadDepartments();
   }, []);
 
+  /* ------------------------------------------------------------
+     6) Load substitute faculty when department changes
+  ------------------------------------------------------------ */
   useEffect(() => {
-    loadStaff();
+    loadSubstituteFaculty();
   }, [form.department_select]);
 
   return (
