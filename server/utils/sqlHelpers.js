@@ -1,12 +1,18 @@
-// small helper to map rows to objects when needed
-function rowsToObjects(rows, fields) {
-  return rows.map(r => {
-    const obj = {};
-    fields.forEach((f, i) => {
-      obj[f.name] = r[i];
-    });
-    return obj;
-  });
-}
+module.exports = {
+  makeInValues(array) {
+    if (!Array.isArray(array) || array.length === 0) return "()";
+    return "(" + array.map(() => "?").join(",") + ")";
+  },
 
-module.exports = { rowsToObjects };
+  flattenParams(array) {
+    return array.flat(Infinity);
+  },
+
+  buildUpdateSet(obj) {
+    const fields = Object.keys(obj)
+      .map((k) => `${k}=?`)
+      .join(", ");
+    const values = Object.values(obj);
+    return { fields, values };
+  }
+};
