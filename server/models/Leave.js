@@ -1,0 +1,312 @@
+// models/leave.js
+const pool = require("../config/db");
+
+/* ============================================================
+   1) INSERT NEW LEAVE REQUEST
+============================================================ */
+async function insertLeaveRequest(data) {
+  const {
+    user_id,
+    department_code,
+    leave_type,
+    start_date,
+    start_session,
+    end_date,
+    end_session,
+    reason,
+    substitute_id,
+    substitute_status
+  } = data;
+
+  const [result] = await pool.query(
+    `INSERT INTO leave_requests
+      (user_id, department_code, leave_type, start_date, start_session,
+       end_date, end_session, reason, substitute_id,
+       substitute_status, hod_status, principal_status, final_status)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [
+      user_id,
+      department_code,
+      leave_type,
+      start_date,
+      start_session,
+      end_date,
+      end_session,
+      reason,
+      substitute_id,
+      substitute_status,        // pending or null
+      "pending",                // hod_status
+      "pending",                // principal_status
+      "pending"                 // final_status
+    ]
+  );
+
+  return result.insertId;
+}
+
+/* ============================================================
+   2) INSERT SUBSTITUTE ARRANGEMENT
+============================================================ */
+async function insertArrangement(leave_id, substitute_id) {
+  await pool.query(
+    `INSERT INTO arrangements (leave_id, substitute_id, status)
+     VALUES (?, ?, 'pending')`,
+    [leave_id, substitute_id]
+  );
+}
+
+/* ============================================================
+   3) GET SUBSTITUTE DETAILS
+============================================================ */
+async function getSubstituteDetails(substitute_id) {
+  const [[sub]] = await pool.query(
+    `SELECT user_id, name, email 
+     FROM users 
+     WHERE user_id = ? LIMIT 1`,
+    [substitute_id]
+  );
+  return sub;
+}
+
+/* ============================================================
+   4) APPLIED LEAVES (USER HISTORY)
+============================================================ */
+async function getAppliedLeaves(user_id) {
+  const [rows] = await pool.query(
+    `SELECT lr.*, s.name AS substitute_name
+     FROM leave_requests lr
+     LEFT JOIN users s ON lr.substitute_id = s.user_id
+     WHERE lr.user_id = ?
+     ORDER BY lr.applied_on DESC
+     LIMIT 20`,
+    [user_id]
+  );
+  return rows;
+}
+
+/* ============================================================
+   5) SUBSTITUTE REQUESTS FOR USER
+============================================================ */
+async function getSubstituteRequests(user_id) {
+  const [rows] = await pool.query(
+    `SELECT 
+        lr.leave_id,
+        lr.user_id,
+        lr.leave_type,
+        lr.start_date,
+        lr.end_date,
+        lr.days,
+        lr.reason,
+        lr.substitute_status,
+        u.name AS requester_name
+     FROM leave_requests lr
+     JOIN users u ON lr.user_id = u.user_id
+     WHERE lr.substitute_id = ?
+     ORDER BY lr.leave_id DESC
+     LIMIT 20`,
+    [user_id]
+  );
+  return rows;
+}
+
+/* ============================================================
+   6) GET LEAVE APPLICANT (for email)
+============================================================ */
+async function getApplicantDetails(leaveId) {
+  const [[row]] = await pool.query(
+    `SELECT u.user_id, u.name, u.email 
+       FROM leave_requests lr
+       JOIN users u ON lr.user_id = u.user_id
+       WHERE lr.leave_id = ?
+       LIMIT 1`,
+    [leaveId]
+  );
+  return row;
+}
+
+/* ============================================================
+   7) GET SINGLE LEAVE REQUEST
+============================================================ */
+async function getLeaveById(leaveId) {
+  const [[row]] = await pool.query(
+    `SELECT * FROM leave_requests WHERE leave_id = ? LIMIT 1`,
+    [leaveId]
+  );
+  return row;
+}
+
+/* ============================================================
+   8) SUBSTITUTE APPROVE / REJECT
+============================================================ */
+async function updateSubstituteStatus(leaveId, status) {
+  await pool.query(
+    `UPDATE leave_requests 
+     SET substitute_status = ?
+     WHERE leave_id = ?`,
+    [status, leaveId]
+  );
+}
+
+/* ============================================================
+   9) HOD APPROVE / REJECT
+      Maps to: approved / rejected / pending
+============================================================ */
+async function updateHodStatus(leaveId, status) {
+  if (status === "approved") {
+    await pool.query(
+      `UPDATE leave_requests 
+       SET hod_status = 'approved',
+           principal_status = 'pending',
+           final_status = 'pending',
+           updated_at = NOW()
+       WHERE leave_id = ?`,
+      [leaveId]
+    );
+  } else {
+    await pool.query(
+      `UPDATE leave_requests 
+       SET hod_status = 'rejected',
+           principal_status = 'rejected',
+           final_status = 'rejected',
+           updated_at = NOW()
+       WHERE leave_id = ?`,
+      [leaveId]
+    );
+  }
+}
+
+/* ============================================================
+   HOD – GET PENDING REQUESTS
+============================================================ */
+async function getPendingHodRequests(department_code) {
+  const [rows] = await pool.query(
+    `SELECT lr.*, u.name AS requester_name 
+     FROM leave_requests lr
+     JOIN users u ON lr.user_id = u.user_id
+     WHERE lr.hod_status = 'pending'
+     AND u.department_code = ?`,
+    [department_code]
+  );
+  return rows;
+}
+
+/* ============================================================
+   HOD – APPROVE LEAVE (simple version for Jest tests)
+============================================================ */
+async function approveLeave(leave_id) {
+  const [result] = await pool.query(
+    `UPDATE leave_requests
+     SET hod_status = 'approved'
+     WHERE leave_id = ?`,
+    [leave_id]
+  );
+  return result;
+}
+
+
+/* ============================================================
+   10) PRINCIPAL APPROVE / REJECT
+============================================================ */
+async function updatePrincipalStatus(leaveId, status) {
+  if (status === "approved") {
+    await pool.query(
+      `UPDATE leave_requests 
+       SET principal_status = 'approved',
+           final_status = 'approved',
+           processed_on = NOW()
+       WHERE leave_id = ?`,
+      [leaveId]
+    );
+  } else {
+    await pool.query(
+      `UPDATE leave_requests 
+       SET principal_status = 'rejected',
+           final_status = 'rejected',
+           processed_on = NOW()
+       WHERE leave_id = ?`,
+      [leaveId]
+    );
+  }
+}
+
+/* ============================================================
+   11) HOD DEPARTMENT LEAVES
+============================================================ */
+async function getDepartmentLeaves(department_code) {
+  const [rows] = await pool.query(
+    `SELECT lr.*, 
+            u1.name AS requester_name,
+            u2.name AS substitute_name
+     FROM leave_requests lr
+     LEFT JOIN users u1 ON lr.user_id = u1.user_id
+     LEFT JOIN users u2 ON lr.substitute_id = u2.user_id
+     WHERE u1.department_code = ?
+     ORDER BY lr.applied_on DESC`,
+    [department_code]
+  );
+  return rows;
+}
+
+/* ============================================================
+   12) ALL DEPARTMENTS
+============================================================ */
+async function getDepartments() {
+  const [rows] = await pool.query(
+    `SELECT DISTINCT department_code 
+     FROM users 
+     WHERE role = 'faculty'`
+  );
+  return rows.map((d) => d.department_code);
+}
+
+/* ============================================================
+   13) INSTITUTION LEAVES (ADMIN/PRINCIPAL)
+============================================================ */
+async function getInstitutionLeaves(selected_department = null) {
+  let query = `
+    SELECT lr.*, 
+           u1.name AS requester_name,
+           u2.name AS substitute_name,
+           u1.department_code
+    FROM leave_requests lr
+    LEFT JOIN users u1 ON lr.user_id = u1.user_id
+    LEFT JOIN users u2 ON lr.substitute_id = u2.user_id`;
+  const params = [];
+
+  if (selected_department) {
+    query += ` WHERE u1.department_code = ? `;
+    params.push(selected_department);
+  }
+
+  query += ` ORDER BY lr.applied_on DESC `;
+
+  const [rows] = await pool.query(query, params);
+  return rows;
+}
+
+async function getLeaveApplicant(leaveId) {
+  return await getApplicantDetails(leaveId);
+}
+
+
+/* ============================================================
+   EXPORT
+============================================================ */
+module.exports = {
+  insertLeaveRequest,
+  insertArrangement,
+  getSubstituteDetails,
+  getAppliedLeaves,
+  getSubstituteRequests,
+  getApplicantDetails,
+  getLeaveById,
+  updateSubstituteStatus,
+  updateHodStatus,
+  updatePrincipalStatus,
+  getDepartmentLeaves,
+  getDepartments,
+  getInstitutionLeaves,
+  getPendingHodRequests,
+  getLeaveApplicant,
+  approveLeave
+};
