@@ -29,7 +29,7 @@ async function getPrincipalPending() {
      FROM leave_requests lr
      LEFT JOIN users u1 ON lr.user_id = u1.user_id
      LEFT JOIN users u2 ON lr.substitute_id = u2.user_id
-     WHERE lr.hod_status = 'accepted'
+     WHERE lr.hod_status = 'approved'
        AND lr.principal_status = 'pending'
      ORDER BY lr.applied_on DESC`
   );
@@ -84,7 +84,7 @@ async function getApplicantEmail(leave_id) {
 async function approveLeavePrincipal(leave_id) {
   await pool.query(
     `UPDATE leave_requests 
-     SET principal_status='accepted',
+     SET principal_status='approved',
          final_status='approved',
          processed_on = NOW()
      WHERE leave_id = ?`,

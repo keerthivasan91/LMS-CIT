@@ -34,7 +34,7 @@ async function adminAddUser(req, res, next) {
     }
 
     // check if exists
-    const exists = await UserModel.checkUserExists(user_id, email);
+    const exists = await UserModel.userExists(user_id, email);
     if (exists) {
       return res.status(409).json({ message: "User already exists" });
     }

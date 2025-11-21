@@ -25,7 +25,7 @@ async function adminDashboard(req, res, next) {
 
 async function approvePrincipal(req, res, next) {
   try {
-    const leaveId = req.params.id;
+    const leaveId = req.params.rid;
     const applicant = await AdminModel.getApplicantEmail(leaveId);
 
     if (!applicant) {
@@ -50,7 +50,7 @@ async function approvePrincipal(req, res, next) {
 
 async function rejectPrincipal(req, res, next) {
   try {
-    const leaveId = req.params.id;
+    const leaveId = req.params.rid;
     const applicant = await AdminModel.getApplicantEmail(leaveId);
 
     if (!applicant) {
