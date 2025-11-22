@@ -48,14 +48,14 @@ const Dashboard = () => {
       <div className="dashboard-card">
         <h3 className="card-heading">Important Information</h3>
         <ul className="info-list">
-          <li><span className="dot">•</span>You will receive one email each when the HOD and the Principal approves/rejects your application.</li>
-          <li><span className="dot">•</span>You cannot club CL and EL.</li>
-          <li><span className="dot">•</span>Apply for OOD while going out on College Work.</li>
-          <li><span className="dot">•</span>Apply for SCL while going out on VTU work like Examination duty, VTU Meetings, etc.</li>
-          <li><span className="dot">•</span>To Apply for PL, prior permission from the Principal is necessary and mention the reason clearly in the leave application.</li>
-          <li><span className="dot">•</span>To Apply for Compensatory Off, mention the date for which Comp Off is being claimed.</li>
-          <li><span className="dot">•</span>Apply for LOP when CL and EL are exhausted.</li>
-          <li><span className="dot">•</span>Leave applications without valid reason may be rejected.</li>
+          <li>You will receive one email each when the HOD and the Principal approves/rejects your application.</li>
+          <li>You cannot club CL and EL.</li>
+          <li>Apply for OOD while going out on College Work.</li>
+          <li>Apply for SCL while going out on VTU work like Examination duty, VTU Meetings, etc.</li>
+          <li>To Apply for PL, prior permission from the Principal is necessary and mention the reason clearly in the leave application.</li>
+          <li>To Apply for Compensatory Off, mention the date for which Comp Off is being claimed.</li>
+          <li>Apply for LOP when CL and EL are exhausted.</li>
+          <li>Leave applications without valid reason may be rejected.</li>
         </ul>
       </div>
     </div>
