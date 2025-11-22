@@ -181,6 +181,7 @@ const PasswordPage = ({ mode = "change" }) => {
           ---------------------------------------------------------- */}
           {mode === "change" && (
             <>
+                <br></br>
               <label className="form-label">Current Password</label>
               <input
                 type="password"
@@ -209,6 +210,7 @@ const PasswordPage = ({ mode = "change" }) => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
+              <br />
               <br />
             </>
           )}
