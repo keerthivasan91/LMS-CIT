@@ -1,36 +1,44 @@
 import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-import "../App.css";
-
 import { isHOD, isAdmin, isFaculty } from "../utils/roles";
 
-const Sidebar = ({ pendingSubs = 0, pendingHod = 0, pendingPrincipal = 0 }) => {
+const Sidebar = ({
+  pendingSubs = 0,
+  pendingHod = 0,
+  pendingPrincipal = 0,
+  notifCount = 0,
+  sidebarOpen,
+  closeSidebar
+}) => {
+
   const { user } = useContext(AuthContext);
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${sidebarOpen ? "active" : ""}`}>
       <h3 style={{ textAlign: "center" }}>Menu</h3>
 
-      <ul>
-        {/* Dashboard */}
+      <ul onClick={closeSidebar}>
+
         <li>
-          <NavLink to="/dashboard">Dashboard</NavLink>
+          <NavLink to="/dashboard">
+            Dashboard
+            {notifCount > 0 && (
+              <span className="notification">{notifCount}</span>
+            )}
+          </NavLink>
         </li>
 
-        {/* Apply Leave – hide for admin */}
         {!isAdmin(user) && (
           <li>
             <NavLink to="/apply">Apply For Leave</NavLink>
           </li>
         )}
 
-        {/* Leave History */}
         <li>
           <NavLink to="/leave-history">Leave History</NavLink>
         </li>
 
-        {/* Substitute Requests – faculty only */}
         {isFaculty(user) && (
           <li>
             <NavLink to="/substitute-requests">
@@ -42,17 +50,10 @@ const Sidebar = ({ pendingSubs = 0, pendingHod = 0, pendingPrincipal = 0 }) => {
           </li>
         )}
 
-        {/* Holiday Calendar */}
-        <li>
-          <NavLink to="/holidays">Holiday Calendar</NavLink>
-        </li>
+        <li><NavLink to="/holidays">Holiday Calendar</NavLink></li>
 
-        {/* Profile */}
-        <li>
-          <NavLink to="/profile">Profile</NavLink>
-        </li>
+        <li><NavLink to="/profile">Profile</NavLink></li>
 
-        {/* HOD Features */}
         {isHOD(user) && (
           <>
             <li>
@@ -64,13 +65,10 @@ const Sidebar = ({ pendingSubs = 0, pendingHod = 0, pendingPrincipal = 0 }) => {
               </NavLink>
             </li>
 
-            <li>
-              <NavLink to="/hod/leave-balance">Leave Balance</NavLink>
-            </li>
+            <li><NavLink to="/hod/leave-balance">Leave Balance</NavLink></li>
           </>
         )}
 
-        {/* Admin Features */}
         {isAdmin(user) && (
           <>
             <li>
@@ -82,22 +80,13 @@ const Sidebar = ({ pendingSubs = 0, pendingHod = 0, pendingPrincipal = 0 }) => {
               </NavLink>
             </li>
 
-            <li>
-              <NavLink to="/admin/add-user">Add User</NavLink>
-            </li>
+            <li><NavLink to="/admin/add-user">Add User</NavLink></li>
 
-            <li>
-              <NavLink to="/admin/reset-requests">Password Reset Requests</NavLink>
-            </li>
+            <li><NavLink to="/admin/reset-requests">Password Reset Requests</NavLink></li>
           </>
         )}
-      </ul>
 
-      {/*<div className="stats">
-        <p><strong>{user?.name || "Guest"}</strong></p>
-        <p>{user?.role?.toUpperCase() || "Not logged in"}</p>
-        <p>{user?.department_code || "N/A"}</p>
-      </div>*/}
+      </ul>
     </aside>
   );
 };
