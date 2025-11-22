@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const sessionAuth = require('../middleware/sessionAuth');
-const role = require('../middleware/roleMiddleware');
+const sessionAuth = require('../middleware/authMiddleware');
 
 const { 
   applyLeave, 
@@ -12,15 +11,14 @@ const {
 // Apply for leave → only faculty, staff, hod
 router.post(
   '/leave/apply',
-  sessionAuth,
-  role(["faculty", "staff", "hod"]),
+  sessionAuth(["faculty","staff","hod"]),
   applyLeave
 );
 
 // Fetch leave history (auth required)
 router.get(
   '/leave/history',
-  sessionAuth,
+  sessionAuth(),
   leaveHistory
 );
 

@@ -3,12 +3,20 @@
 const bcrypt = require("bcryptjs");
 const UserModel = require("../models/User");
 
+// Minimal sanitization
+function sanitizeString(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/[<>]/g, "");
+}
+
 /* ============================================================
    LOGIN (SESSION BASED)
 ============================================================ */
+
 async function login(req, res, next) {
   try {
-    const { user_id, password } = req.body;
+    const user_id = sanitizeString(req.body.user_id);
+    const password = sanitizeString(req.body.password);
 
     if (!user_id || !password) {
       return res.status(400).json({ message: "User ID and password are required" });
@@ -24,22 +32,26 @@ async function login(req, res, next) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Store session
-    req.session.user = {
-      user_id: user.user_id,
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      department_code: user.department_code,
-    };
+    // Prevent session fixation
+    req.session.regenerate(async (err) => {
+      if (err) return next(err);
 
-    await UserModel.updateLastLogin(user.user_id);
+      req.session.user = {
+        user_id: user.user_id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        department_code: user.department_code,
+      };
 
-    res.json({
-      ok: true,
-      message: "Login successful",
-      user: req.session.user,
+      await UserModel.updateLastLogin(user.user_id);
+
+      return res.json({
+        ok: true,
+        message: "Login successful",
+        user: req.session.user,
+      });
     });
 
   } catch (err) {
@@ -63,7 +75,7 @@ async function me(req, res) {
 ============================================================ */
 async function logout(req, res) {
   req.session.destroy(() => {
-    res.clearCookie("connect.sid");
+    res.clearCookie("session_id");  // your cookie key
     return res.json({ ok: true, message: "Logged out" });
   });
 }

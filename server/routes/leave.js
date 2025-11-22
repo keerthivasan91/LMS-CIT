@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const sessionAuth = require('../middleware/sessionAuth');
+const sessionAuth = require('../middleware/authMiddleware');
 const { applyLeave, leaveHistory } = require('../controllers/leaveController');
 
-router.post('/apply',sessionAuth, applyLeave);
-router.get('/leave_history', sessionAuth, leaveHistory);
-
+router.post('/apply',sessionAuth(), applyLeave);
+router.get('/leave_history', sessionAuth(), leaveHistory);  
 module.exports = router;
