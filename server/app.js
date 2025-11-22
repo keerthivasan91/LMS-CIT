@@ -2,6 +2,15 @@ require("dotenv").config();
 const session = require("express-session");
 const express = require("express");
 const helmet = require("helmet");
+const MySQLStore = require("express-mysql-session")(session);
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+});
+
 const cors = require("cors");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -22,23 +31,27 @@ const forgotPasswordRoutes = require("./routes/forgotpassword");
 
 
 const app = express();
+app.use(helmet());
+app.use(helmet.frameguard({ action: "deny" }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(
   session({
+    key : "session_id",
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "supersecretkey",
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       secure: false,
-      maxAge: (1000 * 60 * 60), // 60 minutes
+      sameSite : "lax",
+      maxAge: (1000 * 60 * 30), // 30 minutes
     }
   })
 );
 
-app.use(helmet());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(morgan("combined"));
 
 app.use(rateLimit);
