@@ -17,7 +17,12 @@ const SubstituteRequests = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setRequests(res.data.requests || []);
+      // Only keep active (pending) requests
+      const pending = (res.data.requests || []).filter(
+        (r) => r.substitute_status === "pending"
+      );
+
+      setRequests(pending);
     } catch (err) {
       console.error("Failed to load substitute requests", err);
       setRequests([]);
@@ -82,25 +87,19 @@ const SubstituteRequests = () => {
                   <td>{r.substitute_status}</td>
 
                   <td>
-                    {r.substitute_status === "pending" ? (
-                      <>
-                        <button
-                          className="action-accept"
-                          onClick={() => handleAccept(r.arrangement_id)}
-                        >
-                          Accept
-                        </button>
-                        {" | "}
-                        <button
-                          className="action-reject"
-                          onClick={() => handleReject(r.arrangement_id)}
-                        >
-                          Reject
-                        </button>
-                      </>
-                    ) : (
-                      "Responded"
-                    )}
+                    <button
+                      className="action-accept"
+                      onClick={() => handleAccept(r.arrangement_id)}
+                    >
+                      Accept
+                    </button>
+                    {" | "}
+                    <button
+                      className="action-reject"
+                      onClick={() => handleReject(r.arrangement_id)}
+                    >
+                      Reject
+                    </button>
                   </td>
                 </tr>
               ))}
