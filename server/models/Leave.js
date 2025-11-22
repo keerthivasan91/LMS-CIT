@@ -247,7 +247,17 @@ async function approveLeave(leave_id) {
    10) PRINCIPAL APPROVE / REJECT
 ============================================================ */
 async function updatePrincipalStatus(leaveId, status) {
+  const [[leave]] = await pool.query(
+    `SELECT user_id, leave_type, days 
+     FROM leave_requests WHERE leave_id = ? LIMIT 1`,
+    [leaveId]
+  );
+
   if (status === "approved") {
+
+    // update leave balance  
+    await updateLeaveBalance(leave.user_id, leave.leave_type, leave.days);
+
     await pool.query(
       `UPDATE leave_requests 
        SET principal_status = 'approved',
@@ -267,6 +277,7 @@ async function updatePrincipalStatus(leaveId, status) {
     );
   }
 }
+
 
 /* ============================================================
    11) HOD DEPARTMENT LEAVES
