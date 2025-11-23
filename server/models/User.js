@@ -9,7 +9,7 @@ async function getUserById(user_id) {
   const [rows] = await pool.query(
     `SELECT user_id, name, email, phone, role, department_code, password, is_active 
      FROM users 
-     WHERE user_id = ? 
+     WHERE user_id = ? AND is_active = 1
      LIMIT 1`,
     [user_id]
   );
@@ -127,7 +127,7 @@ async function getAllDepartments() {
 ============================================================ */
 async function userExists(user_id) {
   const [rows] = await pool.query(
-    `SELECT user_id FROM users WHERE user_id = ?`,
+    `SELECT user_id FROM users WHERE user_id = ? AND is_active = 1`,
     [user_id]
   );
   return rows.length > 0;

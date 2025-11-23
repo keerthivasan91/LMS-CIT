@@ -1,5 +1,3 @@
-// controllers/adminAddUser.js
-
 const bcrypt = require("bcryptjs");
 const sendMail = require("../config/mailer");
 const UserModel = require("../models/User");
@@ -18,7 +16,8 @@ async function adminAddUser(req, res, next) {
       role,
       desc,
       department_code,
-      date_of_joining,
+      designation,
+      date_joined,
       password
     } = req.body;
 
@@ -33,7 +32,7 @@ async function adminAddUser(req, res, next) {
         .json({ message: "Department required for faculty/hod/staff" });
     }
 
-    // check if exists
+    // Check if exists
     const exists = await UserModel.userExists(user_id, email);
     if (exists) {
       return res.status(409).json({ message: "User already exists" });
@@ -41,7 +40,7 @@ async function adminAddUser(req, res, next) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // create user
+    // Create user
     await UserModel.createUser({
       user_id,
       name,
@@ -50,12 +49,13 @@ async function adminAddUser(req, res, next) {
       role,
       designation: desc,
       department_code,
-      date_of_joining,
+      designation,
+      date_joined,
       password: hashedPassword
     });
 
-    // email
-    await sendMail(
+    // Queue email (non-blocking)
+    sendMail(
       email,
       "Your LMS Account Created",
       `<h2>Welcome ${name}</h2>
