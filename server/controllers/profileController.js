@@ -54,7 +54,20 @@ async function changePassword(req, res, next) {
   }
 }
 
+async function getLeaveBalance(req, res, next) {
+  try {
+    const user_id = req.user.user_id;
+
+    const leaveBalance = await ProfileModel.getLeaveBalanceModel(user_id);
+
+    res.json({ ok: true, leaveBalance });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getProfileStats,
   changePassword,
+  getLeaveBalance
 };

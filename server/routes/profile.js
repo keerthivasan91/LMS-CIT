@@ -8,6 +8,8 @@ const {
   leaveHistory 
 } = require('../controllers/leaveController');
 
+const { getLeaveBalance } = require('../controllers/profileController');
+
 // Apply for leave → only faculty, staff, hod
 router.post(
   '/leave/apply',
@@ -21,5 +23,8 @@ router.get(
   sessionAuth(),
   leaveHistory
 );
+
+router.get('/leave-balance', sessionAuth(), getLeaveBalance);
+
 
 module.exports = router;

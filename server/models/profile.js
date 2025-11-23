@@ -44,8 +44,20 @@ async function updateUserPassword(user_id, hashedPassword) {
   );
 }
 
+async function getLeaveBalanceModel(user_id) {
+  const [rows] = await pool.query(
+    `SELECT casual_total, earned_total, rh_total 
+     FROM leave_balance 
+     WHERE user_id = ?`,
+    [user_id]
+  );
+  return rows[0] || { casual_used: 0, earned_used: 0, rh_used: 0 };
+}
+
+
 module.exports = {
   getProfileStatsModel,
   getUserPassword,
   updateUserPassword,
+  getLeaveBalanceModel
 };
