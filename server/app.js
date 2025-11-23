@@ -17,6 +17,7 @@ const cookieParser = require("cookie-parser");
 
 const rateLimit = require("./middleware/rateLimit");
 const { errorHandler } = require("./middleware/errorHandler");
+const processMailQueue = require("./workers/mailWorker");
 
 const authRoutes = require("./routes/auth");
 const branchRoutes = require("./routes/branches");
@@ -75,6 +76,11 @@ app.use("/api", adminRoutes);
 app.use("/api", profileRoutes);
 app.use("/api/holidays", holidayRoutes);        // <-- better consistency
 app.use("/api/notifications", require("./routes/notifications")); // <-- FIXED
+
+setInterval(() => {
+  processMailQueue();
+}, 60000); // every 10 minutes
+
 
 
 
