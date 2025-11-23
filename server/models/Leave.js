@@ -226,6 +226,7 @@ async function getPendingHodRequests(department_code, hod_id) {
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
      WHERE lr.hod_status = 'pending'
+       AND (lr.substitute_status = 'accepted' OR lr.substitute_status IS NULL)
        AND u.department_code = ?
        AND lr.user_id != ?`,
     [department_code, hod_id]
@@ -253,27 +254,51 @@ async function approveLeave(leave_id) {
 ============================================================ */
 async function updatePrincipalStatus(leaveId, status) {
   const [[leave]] = await pool.query(
-    `SELECT user_id, leave_type, days 
-     FROM leave_requests WHERE leave_id = ? LIMIT 1`,
+    `SELECT user_id, leave_type, days
+     FROM leave_requests
+     WHERE leave_id = ?
+     LIMIT 1`,
     [leaveId]
   );
 
+  const leaveTypeMap = {
+    "Casual Leave": "casual",
+    "Earned Leave": "earned",
+    "Restricted Holiday": "rh"
+  };
+
+  const academicYear = new Date().getFullYear();
+
   if (status === "approved") {
 
-    // update leave balance  
-    await updateLeaveBalance(leave.user_id, leave.leave_type, leave.days);
-
     await pool.query(
-      `UPDATE leave_requests 
+      `UPDATE leave_requests
        SET principal_status = 'approved',
            final_status = 'approved',
            processed_on = NOW()
        WHERE leave_id = ?`,
       [leaveId]
     );
+
+    const typeKey = leaveTypeMap[leave.leave_type];
+
+    if (typeKey) {
+      const result = await pool.query(
+        `UPDATE leave_balance
+         SET ${typeKey}_used  = ${typeKey}_used + ?,
+             ${typeKey}_total = ${typeKey}_total - ?
+         WHERE user_id = ? AND academic_year = ?`,
+        [leave.days, leave.days, leave.user_id, academicYear]
+      );
+      console.log("Update Result:", result);
+    }
+    console.log("Running updatePrincipalStatus for:", leave.user_id, leave.days, leave.leave_type);
+    console.log("TypeKey:", typeKey);
+
   } else {
+
     await pool.query(
-      `UPDATE leave_requests 
+      `UPDATE leave_requests
        SET principal_status = 'rejected',
            final_status = 'rejected',
            processed_on = NOW()
@@ -282,6 +307,9 @@ async function updatePrincipalStatus(leaveId, status) {
     );
   }
 }
+
+
+
 
 
 /* ============================================================
