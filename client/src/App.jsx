@@ -16,6 +16,7 @@ import HODApproval from "./pages/HODApproval";
 import HODLeaveBalance from "./pages/HODLeaveBalance";
 import PrincipalApprovals from "./pages/PrincipalApprovals";
 import ProtectedRoute from "./utils/ProtectedRoute";
+import DeleteAdminUser from "./pages/DeleteAdminUser";
 
 const App = () => {
   return (
@@ -127,6 +128,17 @@ const App = () => {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="admin/delete-user"
+          element={
+            <ProtectedRoute allowed={["admin"]}>
+              <DeleteAdminUser />
+            </ProtectedRoute>
+          }
+        />
+
+
         <Route
           path="admin/reset-requests"
           element={
