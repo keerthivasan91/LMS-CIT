@@ -37,11 +37,6 @@ const Profile = () => {
       <h2>Profile</h2>
 
       <div className="profile-card">
-        <div className="profile-photo">
-          <div className="img-placeholder">
-            <img src="/profile-placeholder.png" alt="Profile" />
-          </div>
-        </div>
 
         <p><strong>Name:</strong> {profile.name}</p>
         <p><strong>User ID:</strong> {profile.user_id}</p>
