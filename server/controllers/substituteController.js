@@ -20,6 +20,7 @@ async function substituteRequestsForUser(req, res, next) {
           lr.end_session,
           lr.days,
           lr.reason,
+          lr.arrangement_details,
           a.status AS substitute_status,
           a.responded_on,
           u.name AS requester_name,
@@ -58,6 +59,7 @@ async function acceptSubstitute(req, res, next) {
           a.arrangement_id,
           a.leave_id,
           lr.user_id,
+          lr.arrangement_details,
           u.email,
           u.phone,
           u.name,
@@ -167,6 +169,7 @@ async function rejectSubstitute(req, res, next) {
           a.arrangement_id,
           a.leave_id,
           lr.user_id,
+          lr.arrangement_details,
           u.email,
           u.phone,
           u.name

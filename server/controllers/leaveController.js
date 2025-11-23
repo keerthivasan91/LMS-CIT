@@ -1,5 +1,3 @@
-// controllers/leaveController.js
-
 const pool = require("../config/db");
 const sendMail = require("../config/mailer");
 const LeaveModel = require("../models/Leave");
@@ -18,22 +16,30 @@ async function applyLeave(req, res, next) {
     const {
       leave_type = 'Casual Leave',
       start_date,
-      start_session = "FN",
+      start_session = "Forenoon",
       end_date,
-      end_session = "AN",
+      end_session = "Afternoon",
       reason = '',
+      arrangement_details = '',
       substitute_id = ''
     } = req.body;
 
-    const startSessionDB = start_session === "FN" ? "Forenoon" : "Afternoon";
-    const endSessionDB = end_session === "FN" ? "Forenoon" : "Afternoon";
+    function normalizeSession(val) {
+      const v = (val || "").toLowerCase();
+      if (v.startsWith("f")) return "Forenoon";
+      if (v.startsWith("a")) return "Afternoon";
+      return "Forenoon"; // fallback
+    }
+
+    const startSessionDB = normalizeSession(start_session);
+    const endSessionDB = normalizeSession(end_session);
     const substituteStatus = substitute_id ? "pending" : null;
 
     const conn = await pool.getConnection();
     await conn.beginTransaction();
 
     try {
-      /// insert leave
+      // Insert main leave request
       const leave_id = await LeaveModel.insertLeaveRequest({
         user_id,
         department_code,
@@ -43,17 +49,20 @@ async function applyLeave(req, res, next) {
         end_date,
         end_session: endSessionDB,
         reason,
+        arrangement_details,
         substitute_id,
         substitute_status: substituteStatus
       });
 
+      // Substitute request (optional)
       if (substitute_id) {
         await LeaveModel.insertArrangement(leave_id, substitute_id);
 
         const sub = await LeaveModel.getSubstituteDetails(substitute_id);
 
         if (sub?.email) {
-          await sendMail(
+          // Queue substitute email
+          sendMail(
             sub.email,
             "Substitute Request Assigned",
             `<p>You have been requested to substitute from ${start_date} to ${end_date}</p>`
@@ -61,9 +70,11 @@ async function applyLeave(req, res, next) {
         }
       }
 
+      // Commit DB transaction
       await conn.commit();
 
-      await sendMail(
+      // Queue email to applicant
+      sendMail(
         userEmail,
         "Leave Request Submitted",
         `<p>Your leave request is submitted successfully.</p>`
@@ -82,6 +93,7 @@ async function applyLeave(req, res, next) {
     next(err);
   }
 }
+
 
 /* ============================================================
    LEAVE HISTORY

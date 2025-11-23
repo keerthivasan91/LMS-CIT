@@ -14,8 +14,20 @@ async function insertLeaveRequest(data) {
     end_date,
     end_session,
     reason,
+    arrangement_details,
     substitute_id
   } = data;
+
+  // Normalize incoming session values: accept "FN"/"AN" or "Forenoon"/"Afternoon"
+  function normalizeSession(val) {
+    const v = (val || "").toLowerCase();
+    if (v.startsWith("f")) return "Forenoon";
+    if (v.startsWith("a")) return "Afternoon";
+    return "Forenoon"; // fallback
+  }
+
+  const startSessionDB = normalizeSession(start_session);
+  const endSessionDB = normalizeSession(end_session);
 
   // Get role of applicant
   const [[user]] = await pool.query(
@@ -27,48 +39,39 @@ async function insertLeaveRequest(data) {
   let hod_status = "pending";
   let principal_status = "pending";
 
-  /* ============================================================
-      CASE 1: HOD without substitute → skip HOD
-  ============================================================ */  
   if (user.role === "hod" && !substitute_id) {
     substitute_status = null;
-    hod_status = "approved";         // IMPORTANT
-    principal_status = "pending";   // goes directly to principal
-  }
-
-  /* ============================================================
-      CASE 2: HOD with substitute → wait for substitute approval
-  ============================================================ */  
-  else if (user.role === "hod" && substitute_id) {
+    hod_status = "approved";
+    principal_status = "pending";
+  } else if (user.role === "hod" && substitute_id) {
     substitute_status = "pending";
-    hod_status = "pending";         // skip HOD approval
-    principal_status = null;        // principal waits until substitute accepts
-  }
-
-  /* ============================================================
-      CASE 3: Faculty/staff
-  ============================================================ */
-  else {
+    hod_status = "pending";
+    principal_status = null;
+  } else {
     substitute_status = substitute_id ? "pending" : null;
     hod_status = "pending";
     principal_status = null;
   }
 
+  // Ensure arrangement_details is explicit null if undefined
+  const arrDetails = arrangement_details == null ? null : arrangement_details;
+
   const [result] = await pool.query(
     `INSERT INTO leave_requests
       (user_id, department_code, leave_type, start_date, start_session,
-       end_date, end_session, reason, substitute_id,
+       end_date, end_session, reason, arrangement_details, substitute_id,
        substitute_status, hod_status, principal_status, final_status)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       user_id,
       department_code,
       leave_type,
       start_date,
-      start_session,
+      startSessionDB,
       end_date,
-      end_session,
+      endSessionDB,
       reason,
+      arrDetails,
       substitute_id,
       substitute_status,
       hod_status,
@@ -79,6 +82,7 @@ async function insertLeaveRequest(data) {
 
   return result.insertId;
 }
+
 
 
 /* ============================================================
@@ -134,6 +138,7 @@ async function getSubstituteRequests(user_id) {
         lr.end_date,
         lr.days,
         lr.reason,
+        lr.arrangement_details,
         lr.substitute_status,
         u.name AS requester_name
      FROM leave_requests lr
