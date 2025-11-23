@@ -1,7 +1,9 @@
 // server/config/mailer.js
 const nodemailer = require("nodemailer");
 const logger = require("../services/logger");
+const queueEmail = require("../utils/mailQueue");
 
+// We keep transporter for worker (not used here anymore)
 const transporter = nodemailer.createTransport({
   service: process.env.MAIL_SERVICE || "gmail",
   host: process.env.MAIL_HOST,
@@ -13,35 +15,34 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Verify mail server connection
+// Verify SMTP connection for debugging only
 transporter.verify((error) => {
   if (error) {
     console.error("❌ Email server connection failed:", error.message);
   } else {
-    console.log("📨 Email server is ready to send messages");
+    console.log("📨 Email server is ready (SMTP verification successful)");
   }
 });
 
 /**
- * Send Email
+ * Queue Email Instead of Sending Directly
+ * ---------------------------------------
+ * This function NO LONGER sends mail immediately.
+ * It only inserts the mail into `mail_queue`.
+ * The worker will send the email asynchronously.
  */
 async function sendMail(to, subject, html) {
   try {
-    const mailOptions = {
-      from: process.env.MAIL_FROM || process.env.MAIL_USER,
-      to,
-      subject,
-      html,
-    };
+    const queueId = await queueEmail(to, subject, html);
 
-    await transporter.sendMail(mailOptions);
+    logger.info(`Mail queued for: ${to} (queue_id=${queueId})`);
+    console.log(`📥 Email queued → ${to} (queue_id=${queueId})`);
 
-    console.log("📧 Email sent to:", to);
-    logger.info(`Mail sent to: ${to}`);      // <-- FIXED (moved inside sendMail)
+    return queueId;
 
   } catch (err) {
-    console.error("❌ Mail error:", err.message);
-    logger.error(`Mail error to ${to}: ${err.message}`);
+    console.error("❌ Failed to queue email:", err.message);
+    logger.error(`Failed to queue email to ${to}: ${err.message}`);
   }
 }
 
