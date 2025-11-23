@@ -293,6 +293,7 @@
     position: sticky;
     top: 80px;
     z-index: 99;
+    scrollbar-width: none;     
   }
 
   /* Sidebar Overlay for Mobile */
@@ -316,7 +317,8 @@
 
   .sidebar h3 {
     font-size: 18px;
-    margin-bottom: 25px;
+    margin-top: -5px;
+    margin-bottom: 20px;
     border-bottom: 2px solid var(--primary-color);
     padding-bottom: 12px;
     color: var(--text-color);
@@ -979,4 +981,92 @@
   background: #af1d2a;
   transform: translateY(-2px);
 }
+
+/* Container */
+.delete-admin-container {
+  padding: 20px;
+}
+
+/* Success message */
+.success-msg {
+  background: #d4edda;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 4px;
+  color: #155724;
+}
+
+/* Search box */
+.search-box {
+  width: 100%;
+  padding: 12px;
+  margin: 15px 0;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+}
+
+/* Table */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.user-table th,
+.user-table td {
+  padding: 12px;
+  border-bottom: 1px solid #ccc;
+  text-align: left;
+}
+
+.user-table th {
+  background: #f4f4f4;
+}
+
+/* Buttons */
+.delete-btn {
+  padding: 8px 14px;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  padding: 8px 14px;
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.full-btn {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
 
