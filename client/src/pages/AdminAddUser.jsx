@@ -12,6 +12,8 @@ const AdminAddUser = () => {
     role: "faculty",
     department_code: "",
     phone: "",
+    desc: "",
+    date_of_joining: ""
   });
 
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -40,10 +42,19 @@ const AdminAddUser = () => {
     e.preventDefault();
     setMessage({ type: "", text: "" });
 
-    try {
-      const res = await axios.post("/api/add-user", form);
+    const payload = {
+      ...form,
+      designation: form.desc,
+      date_joined: form.date_of_joining,
+    };
 
-      setMessage({ type: "success", text: res.data.message });
+    try {
+      const res = await axios.post("/api/add-user", payload);
+
+      setMessage({
+        type: res.data.type || "success",
+        text: res.data.message
+      });
 
       setForm({
         user_id: "",
@@ -53,6 +64,8 @@ const AdminAddUser = () => {
         role: "faculty",
         department_code: "",
         phone: "",
+        desc: "",
+        date_of_joining: "",
       });
 
     } catch (err) {
@@ -62,6 +75,7 @@ const AdminAddUser = () => {
       });
     }
   };
+
 
   return (
     <div className="apply-leave-container">
