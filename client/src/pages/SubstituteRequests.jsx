@@ -72,7 +72,7 @@ const SubstituteRequests = () => {
                 <th>Requester</th>
                 <th>Start</th>
                 <th>End</th>
-                <th>Sub Status</th>
+                <th>Arrangement Details</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -84,7 +84,7 @@ const SubstituteRequests = () => {
                   <td>{r.requester_name}</td>
                   <td>{formatDate(r.start_date)}</td>
                   <td>{formatDate(r.end_date)}</td>
-                  <td>{r.substitute_status}</td>
+                  <td>{r.arrangement_details}</td>
 
                   <td>
                     <button
