@@ -9,9 +9,11 @@ const {
 } = require("../controllers/adminResetPassword");
 
 
+
 const { 
   adminDashboard, 
   approvePrincipal, 
+  adminGetUsers,
   rejectPrincipal 
 } = require('../controllers/adminController');
 
@@ -27,5 +29,11 @@ router.post("/admin/reset-password", sessionAuth(["admin", "principal"]), getRes
 
 router.get("/admin/reset-requests", sessionAuth(["admin", "principal"]), getResetRequests);
 router.post("/admin/reset-password-final", sessionAuth(["admin", "principal"]), adminResetPasswordFinal);
+
+// routes/admin.js
+router.get("/admin/users", sessionAuth(["admin", "principal"]), adminGetUsers);
+
+
+router.delete("/admin/delete-user/:userId", sessionAuth(["admin", "principal"]), require("../controllers/adminDeleteUser").adminDeleteUser);
 
 module.exports = router;

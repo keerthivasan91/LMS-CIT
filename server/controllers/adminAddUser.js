@@ -25,36 +25,55 @@ async function adminAddUser(req, res, next) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // For faculty / hod — department required
+    // Faculty/HOD/staff must belong to a department
     if (!["admin", "principal"].includes(role) && !department_code) {
-      return res
-        .status(400)
-        .json({ message: "Department required for faculty/hod/staff" });
+      return res.status(400).json({
+        message: "Department required for faculty/HOD/staff"
+      });
     }
 
-    // Check if exists
-    const exists = await UserModel.userExists(user_id, email);
-    if (exists) {
-      return res.status(409).json({ message: "User already exists" });
-    }
+    // Fetch user (active or inactive)
+    const existingUser = await UserModel.getUserFull(user_id);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    if (existingUser) {
+      if (existingUser.is_active === 1) {
+        return res.status(409).json({ message: "User already exists" });
+      }
+
+      // User exists but inactive → Reactivate
+      await UserModel.reactivateUser(user_id, {
+        name,
+        email,
+        phone,
+        role,
+        department_code,
+        designation: desc || designation,
+        date_joined,
+        password: hashedPassword
+      });
+
+      return res.json({
+        ok: true,
+        type: "success",
+        message: "User already existed but was inactive — user reactivated"
+      });
+    }
+
+    // Create new user
     await UserModel.createUser({
       user_id,
       name,
       email,
       phone,
       role,
-      designation: desc,
       department_code,
-      designation,
+      designation: desc || designation,
       date_joined,
       password: hashedPassword
     });
 
-    // Queue email (non-blocking)
     sendMail(
       email,
       "Your LMS Account Created",
@@ -64,7 +83,7 @@ async function adminAddUser(req, res, next) {
        <p><b>Password:</b> ${password}</p>`
     );
 
-    res.json({ ok: true, message: "User added successfully" });
+    res.json({ ok: true, type: "success", message: "User added successfully" });
 
   } catch (err) {
     next(err);

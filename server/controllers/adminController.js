@@ -73,8 +73,21 @@ async function rejectPrincipal(req, res, next) {
   }
 }
 
+async function adminGetUsers(req, res, next) {
+  try {
+    const users = await AdminModel.getAllUsers();
+    res.json({ users });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { adminGetUsers };
+
+
 module.exports = {
   adminDashboard,
   approvePrincipal,
-  rejectPrincipal
+  rejectPrincipal,
+  adminGetUsers
 };

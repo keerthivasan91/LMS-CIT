@@ -1,6 +1,7 @@
 // models/admin.js
 
 const pool = require("../config/db");
+const LeaveModel = require("./Leave");
 
 /* ============================================================
    ADMIN DASHBOARD → PENDING PRINCIPAL APPROVALS
@@ -37,7 +38,7 @@ async function getPrincipalPending() {
 }
 
 /* ============================================================
-   DEPARTMENT FILTER FOR ADMIN PRINCIPAL HISTORY VIEW
+   INSTITUTION LEAVES FILTER
 ============================================================ */
 async function getInstitutionLeaves(selectedDepartment = null) {
   let query = `
@@ -64,7 +65,7 @@ async function getInstitutionLeaves(selectedDepartment = null) {
 }
 
 /* ============================================================
-   PRINCIPAL APPROVE / REJECT → FETCH APPLICANT EMAIL
+   GET APPLICANT EMAIL
 ============================================================ */
 async function getApplicantEmail(leave_id) {
   const [[row]] = await pool.query(
@@ -79,31 +80,14 @@ async function getApplicantEmail(leave_id) {
 }
 
 /* ============================================================
-   PRINCIPAL APPROVE REQUEST
+   PRINCIPAL APPROVE / REJECT
 ============================================================ */
 async function approveLeavePrincipal(leave_id) {
-  await pool.query(
-    `UPDATE leave_requests 
-     SET principal_status='approved',
-         final_status='approved',
-         processed_on = NOW()
-     WHERE leave_id = ?`,
-    [leave_id]
-  );
+  return await LeaveModel.updatePrincipalStatus(leave_id, "approved");
 }
 
-/* ============================================================
-   PRINCIPAL REJECT REQUEST
-============================================================ */
 async function rejectLeavePrincipal(leave_id) {
-  await pool.query(
-    `UPDATE leave_requests 
-     SET principal_status='rejected',
-         final_status='rejected',
-         processed_on = NOW()
-     WHERE leave_id = ?`,
-    [leave_id]
-  );
+  return await LeaveModel.updatePrincipalStatus(leave_id, "rejected");
 }
 
 /* ============================================================
@@ -116,7 +100,6 @@ async function getPendingPasswordResets() {
      WHERE status = 'pending'
      ORDER BY created_at DESC`
   );
-
   return rows;
 }
 
@@ -137,6 +120,47 @@ async function resetPasswordAndResolve(user_id, hashedPassword) {
   );
 }
 
+async function getAllUsers() {
+  const [rows] = await pool.query(
+    `SELECT user_id, name, role FROM users WHERE role != 'admin'`
+  );
+  return rows;
+}
+
+
+
+
+/* ============================================================
+   GET USER BY ID (for delete validation)
+============================================================ */
+async function getUserById(user_id) {
+  const [[row]] = await pool.query(
+    `SELECT user_id, name, email, role 
+     FROM users 
+     WHERE user_id = ?
+     LIMIT 1`,
+    [user_id]
+  );
+  return row;
+}
+
+/* ============================================================
+   DELETE USER (FK cascades handle related tables)
+============================================================ */
+async function deleteUser(user_id) {
+  // CASCADE deletes will automatically remove:
+  // - leave_requests
+  // - leave_balance
+  // - arrangements
+  // - any other child table
+  await pool.query(
+    `UPDATE users 
+     SET is_active = 0, updated_at = NOW() 
+     WHERE user_id = ?`,
+    [user_id]
+  );
+}
+
 module.exports = {
   getPrincipalPending,
   getInstitutionLeaves,
@@ -144,5 +168,8 @@ module.exports = {
   approveLeavePrincipal,
   rejectLeavePrincipal,
   getPendingPasswordResets,
-  resetPasswordAndResolve
+  resetPasswordAndResolve,
+  getUserById,
+  getAllUsers,
+  deleteUser
 };
