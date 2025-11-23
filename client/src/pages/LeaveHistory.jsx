@@ -5,6 +5,12 @@ import { isHOD, isAdmin, isFaculty } from "../utils/roles";
 import { formatDate } from "../utils/dateFormatter";
 import "../App.css";
 
+/* -----------------------------------------------------------
+   Convert FN/AN/Forenoon/Afternoon into clean labels
+----------------------------------------------------------- */
+const prettySession = (s) =>
+  s?.toLowerCase().startsWith("f") ? "Forenoon" : "Afternoon";
+
 const LeaveHistory = () => {
   const { user, token } = useContext(AuthContext);
 
@@ -15,6 +21,9 @@ const LeaveHistory = () => {
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState("");
 
+  /* -----------------------------------------------------------
+     Load all leave history (user / HOD / admin)
+  ----------------------------------------------------------- */
   const loadAll = async (dept = "") => {
     try {
       const res = await axios.get(
@@ -22,17 +31,15 @@ const LeaveHistory = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      /* -----------------------------------------------------------
-         Map Applied Leaves (User)
-      ----------------------------------------------------------- */
+      /* ---------------------- Applied Leaves ---------------------- */
       const mapApplied = (list) =>
         list.map((l) => ({
           id: l.leave_id,
           type: l.leave_type,
           start_date: l.start_date,
-          start_session: l.start_session,
+          start_session: prettySession(l.start_session),
           end_date: l.end_date,
-          end_session: l.end_session,
+          end_session: prettySession(l.end_session),
           days: l.days,
           substitute: l.substitute_name,
           sub_status: l.substitute_status,
@@ -40,12 +47,11 @@ const LeaveHistory = () => {
           principal_status: l.principal_status,
           final_status: l.final_status,
           applied_on: l.applied_on,
-          reason: l.reason
+          reason: l.reason,
+          arrangement_details: l.arrangement_details || null
         }));
 
-      /* -----------------------------------------------------------
-         Map Substitute Requests Assigned to User
-      ----------------------------------------------------------- */
+      /* ---------------------- Substitute Requests ---------------------- */
       const mapSubReq = (list) =>
         list.map((r) => ({
           id: r.leave_id,
@@ -55,21 +61,20 @@ const LeaveHistory = () => {
           end_date: r.end_date,
           days: r.days,
           reason: r.reason,
+          arrangement_details: r.arrangement_details || null,
           status: r.substitute_status
         }));
 
-      /* -----------------------------------------------------------
-         Map Department Leaves (HOD)
-      ----------------------------------------------------------- */
+      /* ---------------------- Department Leaves (HOD) ---------------------- */
       const mapDept = (list) =>
         list.map((l) => ({
           id: l.leave_id,
           requester: l.requester_name,
           type: l.leave_type,
           start_date: l.start_date,
-          start_session: l.start_session,
+          start_session: prettySession(l.start_session),
           end_date: l.end_date,
-          end_session: l.end_session,
+          end_session: prettySession(l.end_session),
           days: l.days,
           substitute: l.substitute_name,
           sub_status: l.substitute_status,
@@ -77,12 +82,11 @@ const LeaveHistory = () => {
           principal_status: l.principal_status,
           final_status: l.final_status,
           applied_on: l.applied_on,
-          reason: l.reason
+          reason: l.reason,
+          arrangement_details: l.arrangement_details || null
         }));
 
-      /* -----------------------------------------------------------
-         Map Institution Leaves (Admin / Principal)
-      ----------------------------------------------------------- */
+      /* ---------------------- Institution Leaves ---------------------- */
       const mapInstitution = (list) =>
         list.map((l) => ({
           id: l.leave_id,
@@ -90,9 +94,9 @@ const LeaveHistory = () => {
           department: l.department_code,
           type: l.leave_type,
           start_date: l.start_date,
-          start_session: l.start_session,
+          start_session: prettySession(l.start_session),
           end_date: l.end_date,
-          end_session: l.end_session,
+          end_session: prettySession(l.end_session),
           days: l.days,
           substitute: l.substitute_name,
           sub_status: l.substitute_status,
@@ -100,7 +104,8 @@ const LeaveHistory = () => {
           principal_status: l.principal_status,
           final_status: l.final_status,
           applied_on: l.applied_on,
-          reason: l.reason
+          reason: l.reason,
+          arrangement_details: l.arrangement_details || null
         }));
 
       setApplied(mapApplied(res.data.applied_leaves || []));
@@ -134,12 +139,14 @@ const LeaveHistory = () => {
     <div className="history-container">
       <h2>Leave History</h2>
 
-      {/* -----------------------------------------------------------
-         USER APPLIED SECTION
-      ----------------------------------------------------------- */}
+      {/* ===========================================================
+          USER APPLIED LEAVES
+      =========================================================== */}
       {user && user.role !== "admin" && (
         <>
-          <h3 style={{ marginTop: 30, color: "#667eea" }}>Leaves You Applied</h3>
+          <h3 style={{ marginTop: 30, color: "#667eea" }}>
+            Leaves You Applied
+          </h3>
 
           {applied.length ? (
             <div className="table-wrapper">
@@ -152,7 +159,8 @@ const LeaveHistory = () => {
                     <th>Days</th><th>Substitute</th>
                     <th>Sub Status</th><th>HOD</th>
                     <th>Principal</th><th>Final</th>
-                    <th>Reason</th><th>Applied</th>
+                    <th>Reason</th><th>Arrangement</th>
+                    <th>Applied</th>
                   </tr>
                 </thead>
 
@@ -177,6 +185,8 @@ const LeaveHistory = () => {
                       <td>{l.final_status}</td>
 
                       <td>{l.reason}</td>
+                      <td>{r.arrangement_details || "—"}</td>
+
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
@@ -189,9 +199,9 @@ const LeaveHistory = () => {
         </>
       )}
 
-      {/* -----------------------------------------------------------
-         SUBSTITUTE REQUESTS ASSIGNED TO THIS USER
-      ----------------------------------------------------------- */}
+      {/* ===========================================================
+          SUBSTITUTE REQUESTS
+      =========================================================== */}
       {isFaculty(user) && substituteRequests.length > 0 && (
         <>
           <h3 style={{ marginTop: 40, color: "#28a745" }}>
@@ -204,7 +214,8 @@ const LeaveHistory = () => {
                 <tr>
                   <th>ID</th><th>Requester</th><th>Type</th>
                   <th>Start</th><th>End</th>
-                  <th>Days</th><th>Reason</th><th>Status</th>
+                  <th>Days</th><th>Reason</th>
+                  <th>Arrangement Details</th><th>Status</th>
                 </tr>
               </thead>
 
@@ -218,6 +229,7 @@ const LeaveHistory = () => {
                     <td>{formatDate(r.end_date)}</td>
                     <td>{r.days}</td>
                     <td>{r.reason}</td>
+                    <td>{r.arrangement_details || "—"}</td>
                     <td>{r.status}</td>
                   </tr>
                 ))}
@@ -227,12 +239,14 @@ const LeaveHistory = () => {
         </>
       )}
 
-      {/* -----------------------------------------------------------
-         HOD SECTION
-      ----------------------------------------------------------- */}
+      {/* ===========================================================
+          HOD DEPARTMENT LEAVE HISTORY
+      =========================================================== */}
       {isHOD(user) && (
         <>
-          <h3 style={{ marginTop: 40, color: "#667eea" }}>Department Leave History</h3>
+          <h3 style={{ marginTop: 40, color: "#667eea" }}>
+            Department Leave History
+          </h3>
 
           {deptLeaves.length ? (
             <div className="table-wrapper">
@@ -245,7 +259,8 @@ const LeaveHistory = () => {
                     <th>Days</th><th>Substitute</th>
                     <th>Sub Status</th><th>HOD</th>
                     <th>Principal</th><th>Final</th>
-                    <th>Reason</th><th>Applied</th>
+                    <th>Reason</th>
+                    <th>Applied</th>
                   </tr>
                 </thead>
 
@@ -271,6 +286,7 @@ const LeaveHistory = () => {
                       <td>{l.final_status}</td>
 
                       <td>{l.reason}</td>
+
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>
                   ))}
@@ -283,9 +299,9 @@ const LeaveHistory = () => {
         </>
       )}
 
-      {/* -----------------------------------------------------------
-         ADMIN / PRINCIPAL SECTION
-      ----------------------------------------------------------- */}
+      {/* ===========================================================
+          ADMIN / PRINCIPAL – INSTITUTION LEAVES
+      =========================================================== */}
       {isAdmin(user) && (
         <>
           <h3 style={{ marginTop: 40, color: "#6f42c1" }}>
@@ -312,8 +328,8 @@ const LeaveHistory = () => {
                 <thead>
                   <tr>
                     <th>ID</th><th>Requester</th><th>Department</th><th>Type</th>
-                    <th>Start</th>
-                    <th>End</th>
+                    <th>Start</th><th>Session</th>
+                    <th>End</th><th>Session</th>
                     <th>Days</th>
                     <th>Principal</th><th>Final</th>
                     <th>Applied</th>
@@ -329,12 +345,15 @@ const LeaveHistory = () => {
                       <td>{l.type}</td>
 
                       <td>{formatDate(l.start_date)}</td>
+                      <td>{l.start_session}</td>
 
                       <td>{formatDate(l.end_date)}</td>
+                      <td>{l.end_session}</td>
 
                       <td>{l.days}</td>
                       <td>{l.principal_status}</td>
                       <td>{l.final_status}</td>
+
 
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>

@@ -79,6 +79,14 @@ const LeaveForm = ({
         required
       ></textarea>
 
+      {/*Arrangement Details */}
+      <label>Arrangement Details (Optional)</label>
+      <textarea
+        name="arrangement_details"
+        value={form.arrangement_details}
+        onChange={onChange}
+        placeholder="Enter arrangement details if any"
+      ></textarea>
 
       {/* ---------------------------------------------------------
           SUBSTITUTE FOR STAFF (only staff visible)
