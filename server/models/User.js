@@ -167,6 +167,28 @@ async function updateLastLogin(user_id) {
 }
 
 
+async function reactivateUser(user_id, data) {
+  const { name, email, phone, role, department_code, designation, date_joined, password } = data;
+
+  await pool.query(
+    `UPDATE users 
+     SET name = ?, email = ?, phone = ?, role = ?, department_code = ?, 
+         designation = ?, date_joined = ?, password = ?, is_active = 1 
+     WHERE user_id = ?`,
+    [name, email, phone, role, department_code, designation, date_joined, password, user_id]
+  );
+}
+
+async function getUserFull(user_id) {
+  const [[row]] = await pool.query(
+    `SELECT * FROM users WHERE user_id = ? LIMIT 1`,
+    [user_id]
+  );
+  return row;
+}
+
+
+
 /* ============================================================
    EXPORT MODEL FUNCTIONS
 ============================================================ */
@@ -182,5 +204,7 @@ module.exports = {
   userExists,
   emailExists,
   updateLastLogin,
+  reactivateUser,
+  getUserFull,
   setActiveStatus
 };
