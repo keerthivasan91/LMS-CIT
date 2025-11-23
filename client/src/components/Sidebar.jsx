@@ -39,7 +39,7 @@ const Sidebar = ({
           <NavLink to="/leave-history">Leave History</NavLink>
         </li>
 
-        {isFaculty(user) && (
+        {isFaculty(user) && isAdmin(user) !== true && (
           <li>
             <NavLink to="/substitute-requests">
               Substitute Requests
