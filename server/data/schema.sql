@@ -74,7 +74,7 @@ CREATE TABLE leave_requests (
         (CASE WHEN end_session = 'Forenoon' THEN 0.5 ELSE 0 END)
     END
   ) STORED,
-
+  arrangement_details TEXT NULL,
   substitute_id VARCHAR(50) NULL,
   substitute_status ENUM('pending','accepted','rejected') DEFAULT 'pending',
   hod_status ENUM('pending','approved','rejected') DEFAULT null,
@@ -104,13 +104,11 @@ CREATE TABLE arrangements (
   leave_id INT NOT NULL,
   substitute_id VARCHAR(50) NOT NULL,
   status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-  remarks TEXT,
   responded_on DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (leave_id) REFERENCES leave_requests(leave_id) ON DELETE CASCADE,
   FOREIGN KEY (substitute_id) REFERENCES users(user_id) ON DELETE CASCADE,
-
   UNIQUE KEY uq_leave_substitute (leave_id, substitute_id),
   INDEX idx_substitute_status (substitute_id, status),
   INDEX idx_leave_id (leave_id)
@@ -241,41 +239,14 @@ DELIMITER ;
 
 
 
--- Improved view with academic year support
-CREATE VIEW vw_user_leave_summary AS
-SELECT 
-  u.user_id, 
-  u.name,
-  u.department_code,
-  d.department_name,
-  lb.academic_year,
-  lb.casual_total, 
-  lb.casual_used,
-  (lb.casual_total - lb.casual_used) as casual_remaining,
-  lb.sick_total, 
-  lb.sick_used,
-  (lb.sick_total - lb.sick_used) as sick_remaining,
-  lb.earned_total, 
-  lb.earned_used,
-  (lb.earned_total - lb.earned_used) as earned_remaining,
-  lb.comp_total, 
-  lb.comp_used,
-  (lb.comp_total - lb.comp_used) as comp_remaining
-FROM users u
-LEFT JOIN leave_balance lb ON lb.user_id = u.user_id AND lb.academic_year = YEAR(CURDATE())
-LEFT JOIN departments d ON u.department_code = d.department_code
-WHERE u.is_active = 1;
 
--- View for leave requests with user details
-CREATE VIEW vw_leave_requests AS
-SELECT 
-  lr.*,
-  u.name as user_name,
-  u.designation as user_designation,
-  u.department_code as user_department,
-  s.name as substitute_name,
-  d.department_name
-FROM leave_requests lr
-JOIN users u ON lr.user_id = u.user_id
-LEFT JOIN users s ON lr.substitute_id = s.user_id
-LEFT JOIN departments d ON lr.department_code = d.department_code;
+CREATE TABLE mail_queue (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  to_email VARCHAR(255) NOT NULL,
+  subject VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  status ENUM('pending','sent','failed') DEFAULT 'pending',
+  last_error TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
