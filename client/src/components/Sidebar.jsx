@@ -82,6 +82,8 @@ const Sidebar = ({
 
             <li><NavLink to="/admin/add-user">Add User</NavLink></li>
 
+            <li><NavLink to="/admin/delete-user">Delete User</NavLink></li>
+
             <li><NavLink to="/admin/reset-requests">Password Reset Requests</NavLink></li>
           </>
         )}
