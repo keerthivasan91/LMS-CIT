@@ -185,7 +185,7 @@ const LeaveHistory = () => {
                       <td>{l.final_status}</td>
 
                       <td>{l.reason}</td>
-                      <td>{r.arrangement_details || "—"}</td>
+                      <td>{l.arrangement_details || "—"}</td>
 
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>
