@@ -386,6 +386,7 @@
     box-shadow: var(--shadow-light);
     overflow-x: auto;
     min-height: calc(100vh - 140px);
+    scrollbar-width: none;   
   }
 
   .section-title {
