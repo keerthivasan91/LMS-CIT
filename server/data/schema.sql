@@ -74,9 +74,7 @@ CREATE TABLE leave_requests (
         (CASE WHEN end_session = 'Forenoon' THEN 0.5 ELSE 0 END)
     END
   ) STORED,
-  arrangement_details TEXT NULL,
-  substitute_id VARCHAR(50) NULL,
-  substitute_status ENUM('pending','accepted','rejected') DEFAULT 'pending',
+  final_substitute_status ENUM('pending','accepted','rejected') DEFAULT 'pending',
   hod_status ENUM('pending','approved','rejected') DEFAULT null,
   principal_status ENUM('pending','approved','rejected') DEFAULT null,
   final_status ENUM('pending','approved','rejected','cancelled') DEFAULT 'pending',
@@ -87,11 +85,9 @@ CREATE TABLE leave_requests (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (substitute_id) REFERENCES users(user_id) ON DELETE SET NULL,
   FOREIGN KEY (department_code) REFERENCES departments(department_code) ON DELETE CASCADE,
 
   INDEX idx_user_applied_on (user_id, applied_on),
-  INDEX idx_substitute (substitute_id),
   INDEX idx_status_applied_on (final_status, applied_on),
   INDEX idx_leave_type (leave_type),
   INDEX idx_final_status (final_status),
@@ -100,37 +96,41 @@ CREATE TABLE leave_requests (
 ) ENGINE=InnoDB;
 
 CREATE TABLE arrangements (
-  arrangement_id INT AUTO_INCREMENT PRIMARY KEY,
-  leave_id INT NOT NULL,
-  substitute_id VARCHAR(50) NOT NULL,
-  status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-  responded_on DATETIME,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (leave_id) REFERENCES leave_requests(leave_id) ON DELETE CASCADE,
-  FOREIGN KEY (substitute_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  UNIQUE KEY uq_leave_substitute (leave_id, substitute_id),
-  INDEX idx_substitute_status (substitute_id, status),
-  INDEX idx_leave_id (leave_id)
+    arrangement_id INT AUTO_INCREMENT PRIMARY KEY,
+    
+    leave_id INT NOT NULL,
+    substitute_id VARCHAR(50) NOT NULL,
+    
+    department_code VARCHAR(20) DEFAULT NULL,
+    details TEXT DEFAULT NULL,
+    
+    status ENUM('pending','accepted','rejected') 
+        DEFAULT 'pending',
+        
+    responded_on DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT fk_arrangements_leave
+        FOREIGN KEY (leave_id) 
+        REFERENCES leave_requests(leave_id)
+        ON DELETE CASCADE,
+    
+    CONSTRAINT fk_arrangements_sub
+        FOREIGN KEY (substitute_id) 
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+    
+    -- Prevent duplicate substitutes for a leave
+    UNIQUE KEY uq_leave_substitute (leave_id, substitute_id),
+    
+    -- Allow fast filtering for "my substitute requests"
+    INDEX idx_substitute_status (substitute_id, status),
+    
+    -- Allow fast lookups for leave details
+    INDEX idx_leave_id (leave_id)
 ) ENGINE=InnoDB;
 
-CREATE TABLE activity_log (
-  log_id INT AUTO_INCREMENT PRIMARY KEY,
-  actor_id VARCHAR(50) NULL,
-  target_leave_id INT NULL,
-  action VARCHAR(255) NOT NULL,
-  metadata JSON NULL,
-  ip VARCHAR(45),
-  user_agent VARCHAR(255),
-  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (actor_id) REFERENCES users(user_id) ON DELETE SET NULL,
-  FOREIGN KEY (target_leave_id) REFERENCES leave_requests(leave_id) ON DELETE SET NULL,
-
-  INDEX idx_actor_time (actor_id, timestamp),
-  INDEX idx_action_time (action, timestamp),
-  INDEX idx_leave_id (target_leave_id)
-) ENGINE=InnoDB;
 
 CREATE TABLE notifications (
   notification_id INT AUTO_INCREMENT PRIMARY KEY,

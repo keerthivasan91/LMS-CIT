@@ -76,9 +76,7 @@ SELECT 'Leave Requests', COUNT(*) FROM leave_requests
 UNION ALL
 SELECT 'Arrangements', COUNT(*) FROM arrangements
 UNION ALL
-SELECT 'Notifications', COUNT(*) FROM notifications
-UNION ALL
-SELECT 'Activity Log', COUNT(*) FROM activity_log;
+SELECT 'Notifications', COUNT(*) FROM notifications ;
 
 -- View sample leave requests with status
 SELECT 
