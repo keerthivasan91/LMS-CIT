@@ -1,172 +1,175 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import Layout from "./components/layout";
-import AdminAddUser from "./pages/AdminAddUser";
-import AdminResetRequest from "./pages/AdminResetRequests";
-import Login from "./pages/Login";
-import ChangePassword from "./pages/ChangePassword";
-import Dashboard from "./pages/Dashboard";
-import ApplyLeave from "./pages/ApplyLeave";
-import LeaveHistory from "./pages/LeaveHistory";
-import SubstituteRequests from "./pages/SubstituteRequests";
-import Holidays from "./pages/Holidays";
-import Profile from "./pages/Profile";
-import HODApproval from "./pages/HODApproval";
-import HODLeaveBalance from "./pages/HODLeaveBalance";
-import PrincipalApprovals from "./pages/PrincipalApprovals";
-import ProtectedRoute from "./utils/ProtectedRoute";
-import DeleteAdminUser from "./pages/DeleteAdminUser";
+// Lazy-loaded pages
+const Layout = lazy(() => import("./components/Layout"));
+const AdminAddUser = lazy(() => import("./pages/AdminAddUser"));
+const AdminResetRequest = lazy(() => import("./pages/AdminResetRequests"));
+const Login = lazy(() => import("./pages/Login"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ApplyLeave = lazy(() => import("./pages/ApplyLeave"));
+const LeaveHistory = lazy(() => import("./pages/LeaveHistory"));
+const SubstituteRequests = lazy(() => import("./pages/SubstituteRequests"));
+const Holidays = lazy(() => import("./pages/Holidays"));
+const Profile = lazy(() => import("./pages/Profile"));
+const HODApproval = lazy(() => import("./pages/HODApproval"));
+const HODLeaveBalance = lazy(() => import("./pages/HODLeaveBalance"));
+const PrincipalApprovals = lazy(() => import("./pages/PrincipalApprovals"));
+const DeleteAdminUser = lazy(() => import("./pages/DeleteAdminUser"));
+const ProtectedRoute = lazy(() => import("./utils/ProtectedRoute"));
 
 const App = () => {
   return (
-    <Routes>
-      {/* PUBLIC ROUTES */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ChangePassword mode="forgot" />} />
+    <Suspense fallback={<div className="loader">Loading...</div>}>
 
-      {/* LAYOUT ROUTES */}
-      <Route path="/" element={<Layout />}>
-
-        <Route
-          path="dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
+      <Routes>
+        {/* PUBLIC */}
+        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/forgot-password" 
+          element={<ChangePassword mode="forgot" />} 
         />
 
-        <Route
-          path="change-password"
-          element={
-            <ProtectedRoute>
-              <ChangePassword mode="change" />
-            </ProtectedRoute>
-          }
-        />
+        {/* WRAP LAYOUT */}
+        <Route path="/" element={<Layout />}>
+          
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="apply"
-          element={
-            <ProtectedRoute>
-              <ApplyLeave />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePassword mode="change" />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="leave-history"
-          element={
-            <ProtectedRoute>
-              <LeaveHistory />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="apply"
+            element={
+              <ProtectedRoute>
+                <ApplyLeave />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="holidays"
-          element={
-            <ProtectedRoute>
-              <Holidays />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="leave-history"
+            element={
+              <ProtectedRoute>
+                <LeaveHistory />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="substitute-requests"
-          element={
-            <ProtectedRoute allowed={["faculty", "hod"]}>
-              <SubstituteRequests />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="holidays"
+            element={
+              <ProtectedRoute>
+                <Holidays />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="substitute-requests"
+            element={
+              <ProtectedRoute allowed={["faculty", "hod"]}>
+                <SubstituteRequests />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* HOD ONLY */}
-        <Route
-          path="hod"
-          element={
-            <ProtectedRoute allowed={["hod"]}>
-              <HODApproval />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="hod/leave-balance"
-          element={
-            <ProtectedRoute allowed={["hod"]}>
-              <HODLeaveBalance />
-            </ProtectedRoute>
-          }
-        />
+          {/* HOD */}
+          <Route
+            path="hod"
+            element={
+              <ProtectedRoute allowed={["hod"]}>
+                <HODApproval />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* ADMIN */}
-        <Route
-          path="principal-approvals"
-          element={
-            <ProtectedRoute allowed={["admin"]}>
-              <PrincipalApprovals />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="hod/leave-balance"
+            element={
+              <ProtectedRoute allowed={["hod"]}>
+                <HODLeaveBalance />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="admin/add-user"
-          element={
-            <ProtectedRoute allowed={["admin"]}>
-              <AdminAddUser />
-            </ProtectedRoute>
-          }
-        />
+          {/* ADMIN */}
+          <Route
+            path="principal-approvals"
+            element={
+              <ProtectedRoute allowed={["admin"]}>
+                <PrincipalApprovals />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="admin/delete-user"
-          element={
-            <ProtectedRoute allowed={["admin"]}>
-              <DeleteAdminUser />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="admin/add-user"
+            element={
+              <ProtectedRoute allowed={["admin"]}>
+                <AdminAddUser />
+              </ProtectedRoute>
+            }
+          />
 
+          <Route
+            path="admin/delete-user"
+            element={
+              <ProtectedRoute allowed={["admin"]}>
+                <DeleteAdminUser />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="admin/reset-requests"
-          element={
-            <ProtectedRoute allowed={["admin"]}>
-              <AdminResetRequest />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="admin/reset-requests"
+            element={
+              <ProtectedRoute allowed={["admin"]}>
+                <AdminResetRequest />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="admin/reset-password/:uid"
-          element={
-            <ProtectedRoute allowed={["admin"]}>
-              <ChangePassword mode="admin-reset" />
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="admin/reset-password/:uid"
+            element={
+              <ProtectedRoute allowed={["admin"]}>
+                <ChangePassword mode="admin-reset" />
+              </ProtectedRoute>
+            }
+          />
 
+          {/* DEFAULT */}
+          <Route index element={<Navigate to="/dashboard" replace />} />
+        </Route>
 
-
-
-        {/* DEFAULT */}
-        <Route index element={<Navigate to="/dashboard" replace />} />
-      </Route>
-
-      {/* 404 */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 };
 
