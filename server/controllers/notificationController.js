@@ -17,40 +17,55 @@ async function notificationCounters(req, res) {
   try {
     const { user_id, role, department_code } = req.session.user;
 
-    if (role === "faculty") {
+    /* ============================================================
+       1) SUBSTITUTE PENDING REQUESTS 
+          (faculty + staff + hod both get arrangement requests)
+    ============================================================ */
+    if (role === "faculty" || role === "staff" || role==="hod") {
       const [rows] = await pool.query(
         `SELECT COUNT(*) AS count
-     FROM arrangements
-     WHERE substitute_id = ? 
-       AND status = 'pending'`,
+         FROM arrangements
+         WHERE substitute_id = ?
+           AND status = 'pending'`,
         [user_id]
       );
 
       res.locals.pending_subs = rows[0].count || 0;
     }
 
-
-
-
+    /* ============================================================
+       2) HOD PENDING REQUESTS 
+          Show only when:
+          - substitute workflow is complete => final_substitute_status = 'accepted'
+          - hod_status = 'pending'
+    ============================================================ */
     if (role === "hod") {
       const [rows] = await pool.query(
         `SELECT COUNT(*) AS count
          FROM leave_requests
          WHERE department_code = ?
-           AND substitute_status IN ('Accepted','Not Applicable')
-           AND hod_status='Pending'`,
+           AND final_substitute_status = 'accepted'
+           AND hod_status = 'pending'`,
         [department_code]
       );
+
       res.locals.pending_hod = rows[0].count || 0;
     }
 
+    /* ============================================================
+       3) PRINCIPAL PENDING REQUESTS 
+          Show when:
+          - hod_status = 'approved'
+          - principal_status = 'pending'
+    ============================================================ */
     if (role === "principal" || role === "admin") {
       const [rows] = await pool.query(
         `SELECT COUNT(*) AS count
          FROM leave_requests
-         WHERE hod_status='Approved'
-           AND principal_status='Pending'`
+         WHERE hod_status = 'approved'
+           AND principal_status = 'pending'`
       );
+
       res.locals.pending_principal = rows[0].count || 0;
     }
 
