@@ -157,9 +157,9 @@ const LeaveHistory = () => {
                     <th>Start</th><th>Session</th>
                     <th>End</th><th>Session</th>
                     <th>Days</th><th>Substitute</th>
-                    <th>Sub Status</th><th>HOD</th>
+                    <th>Final Sub Status</th><th>HOD</th>
                     <th>Principal</th><th>Final</th>
-                    <th>Reason</th><th>Arrangement</th>
+                    <th>Reason</th>
                     <th>Applied</th>
                   </tr>
                 </thead>
@@ -185,7 +185,6 @@ const LeaveHistory = () => {
                       <td>{l.final_status}</td>
 
                       <td>{l.reason}</td>
-                      <td>{l.arrangement_details || "—"}</td>
 
                       <td>{formatDate(l.applied_on)}</td>
                     </tr>

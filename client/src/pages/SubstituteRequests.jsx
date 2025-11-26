@@ -4,7 +4,6 @@ import "../App.css";
 
 const SubstituteRequests = () => {
   const [requests, setRequests] = useState([]);
-  const token = localStorage.getItem("token");
 
   const formatDate = (iso) => {
     if (!iso) return "";
@@ -14,10 +13,9 @@ const SubstituteRequests = () => {
   const loadRequests = async () => {
     try {
       const res = await axios.get("/api/substitute/requests", {
-        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true, // SESSION-BASED
       });
 
-      // Only keep active (pending) requests
       const pending = (res.data.requests || []).filter(
         (r) => r.substitute_status === "pending"
       );
@@ -38,10 +36,10 @@ const SubstituteRequests = () => {
       await axios.post(
         `/api/substitute/accept/${id}`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       loadRequests();
-    } catch {
+    } catch (err) {
       alert("Error accepting request");
     }
   };
@@ -51,10 +49,10 @@ const SubstituteRequests = () => {
       await axios.post(
         `/api/substitute/reject/${id}`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
       loadRequests();
-    } catch {
+    } catch (err) {
       alert("Error rejecting request");
     }
   };
@@ -84,7 +82,9 @@ const SubstituteRequests = () => {
                   <td>{r.requester_name}</td>
                   <td>{formatDate(r.start_date)}</td>
                   <td>{formatDate(r.end_date)}</td>
-                  <td>{r.arrangement_details}</td>
+
+                  {/* FIXED: Now uses new schema column: details */}
+                  <td>{r.details || "—"}</td>
 
                   <td>
                     <button
