@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState, useCallback } from "react";
 import axios from "../api/axiosConfig";
 
 const AuthContext = createContext();
@@ -7,13 +7,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Session-based login: backend sets cookie
-  const login = (userData) => {
+  // Stable login function
+  const login = useCallback((userData) => {
     setUser(userData);
-  };
+  }, []);
 
-  // Logout — tell backend to destroy session
-  const logout = async () => {
+  // Stable logout function
+  const logout = useCallback(async () => {
     try {
       await axios.post("/api/auth/logout");
     } catch (err) {
@@ -21,12 +21,11 @@ export const AuthProvider = ({ children }) => {
     }
 
     setUser(null);
-
     window.location.href = "/login";
-  };
+  }, []);
 
-  // Rehydrate user from session on page load
-  const fetchUser = async () => {
+  // Rehydrate existing session (runs once)
+  const fetchUser = useCallback(async () => {
     try {
       const res = await axios.get("/api/auth/me");
       if (res.data?.user) {
@@ -37,14 +36,22 @@ export const AuthProvider = ({ children }) => {
     }
 
     setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,        // ok without callback (internal setter)
+        login,
+        logout,
+        loading,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -5,13 +5,17 @@ import AuthContext from "../context/AuthContext";
 const ProtectedRoute = ({ children, allowed }) => {
   const { user, loading } = useContext(AuthContext);
 
-  // Wait for session check
-  if (loading) return null; // or loader component
+  // Wait until auth state is known
+  if (loading) {
+    return <div className="route-loader">Loading...</div>;
+  }
 
-  // If no user session found → redirect to login
-  if (!user) return <Navigate to="/login" replace />;
+  // Not logged in → redirect to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  // Role check
+  // Role-based access
   if (allowed && !allowed.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -19,4 +23,4 @@ const ProtectedRoute = ({ children, allowed }) => {
   return children;
 };
 
-export default ProtectedRoute;
+export default React.memo(ProtectedRoute);
