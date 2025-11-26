@@ -1,118 +1,124 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import ApplyLeave from "./pages/ApplyLeave";
-import LeaveHistory from "./pages/LeaveHistory";
-import Holidays from "./pages/Holidays";
-import Profile from "./pages/Profile";
-import SubstituteRequests from "./pages/SubstituteRequests";
+// Lazy-loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Login = lazy(() => import("./pages/Login"));
+const ApplyLeave = lazy(() => import("./pages/ApplyLeave"));
+const LeaveHistory = lazy(() => import("./pages/LeaveHistory"));
+const Holidays = lazy(() => import("./pages/Holidays"));
+const Profile = lazy(() => import("./pages/Profile"));
+const SubstituteRequests = lazy(() => import("./pages/SubstituteRequests"));
 
-import HODApproval from "./pages/HODApproval";
-import HODLeaveBalance from "./pages/HODLeaveBalance";
-import PrincipalApprovals from "./pages/PrincipalApprovals";
+const HODApproval = lazy(() => import("./pages/HODApproval"));
+const HODLeaveBalance = lazy(() => import("./pages/HODLeaveBalance"));
+const PrincipalApprovals = lazy(() => import("./pages/PrincipalApprovals"));
 
-import ProtectedRoute from "./utils/ProtectedRoute";
+const ProtectedRoute = lazy(() => import("./utils/ProtectedRoute"));
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/login" element={<Login />} />
+    <Suspense fallback={<div className="loader">Loading...</div>}>
 
-      {/* Dashboard */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Routes>
 
-      {/* Apply Leave */}
-      <Route
-        path="/apply"
-        element={
-          <ProtectedRoute>
-            <ApplyLeave />
-          </ProtectedRoute>
-        }
-      />
+        {/* Public */}
+        <Route path="/login" element={<Login />} />
 
-      {/* Leave History */}
-      <Route
-        path="/leave-history"
-        element={
-          <ProtectedRoute>
-            <LeaveHistory />
-          </ProtectedRoute>
-        }
-      />
+        {/* Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Substitute Requests */}
-      <Route
-        path="/substitute-requests"
-        element={
-          <ProtectedRoute allowed={["faculty", "hod"]}>
-            <SubstituteRequests />
-          </ProtectedRoute>
-        }
-      />
+        {/* Apply Leave */}
+        <Route
+          path="/apply"
+          element={
+            <ProtectedRoute>
+              <ApplyLeave />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Holidays */}
-      <Route
-        path="/holidays"
-        element={
-          <ProtectedRoute>
-            <Holidays />
-          </ProtectedRoute>
-        }
-      />
+        {/* Leave History */}
+        <Route
+          path="/leave-history"
+          element={
+            <ProtectedRoute>
+              <LeaveHistory />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Profile */}
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
+        {/* Substitute Requests */}
+        <Route
+          path="/substitute-requests"
+          element={
+            <ProtectedRoute allowed={["faculty", "hod"]}>
+              <SubstituteRequests />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* HOD Routes */}
-      <Route
-        path="/hod"
-        element={
-          <ProtectedRoute allowed={["hod"]}>
-            <HODApproval />
-          </ProtectedRoute>
-        }
-      />
+        {/* Holidays */}
+        <Route
+          path="/holidays"
+          element={
+            <ProtectedRoute>
+              <Holidays />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/hod/leave-balance"
-        element={
-          <ProtectedRoute allowed={["hod"]}>
-            <HODLeaveBalance />
-          </ProtectedRoute>
-        }
-      />
+        {/* Profile */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Principal */}
-      <Route
-        path="/principal-approvals"
-        element={
-          <ProtectedRoute allowed={["admin"]}>
-            <PrincipalApprovals />
-          </ProtectedRoute>
-        }
-      />
+        {/* HOD */}
+        <Route
+          path="/hod"
+          element={
+            <ProtectedRoute allowed={["hod"]}>
+              <HODApproval />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Redirect unknown routes */}
-      <Route path="*" element={<Navigate to="/dashboard" />} />
-    </Routes>
+        <Route
+          path="/hod/leave-balance"
+          element={
+            <ProtectedRoute allowed={["hod"]}>
+              <HODLeaveBalance />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Principal Approvals */}
+        <Route
+          path="/principal-approvals"
+          element={
+            <ProtectedRoute allowed={["admin"]}>
+              <PrincipalApprovals />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Unknown routes */}
+        <Route path="*" element={<Navigate to="/dashboard" />} />
+      </Routes>
+
+    </Suspense>
   );
 };
 
