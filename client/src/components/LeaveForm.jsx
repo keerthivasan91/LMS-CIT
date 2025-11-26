@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import "../App.css";
 
 const LeaveForm = ({
@@ -6,10 +6,38 @@ const LeaveForm = ({
   onChange,
   onSubmit,
   role,
-  facultyList = [],
   departments = [],
-  staffList = []
+  staffList = [],
+
+  // NEW props (correct row-wise lists)
+  facultyArr1 = [],
+  facultyArr2 = [],
+  facultyArr3 = [],
+  facultyArr4 = []
 }) => {
+
+  // Staff dropdown list
+  const staffOptions = useMemo(
+    () =>
+      staffList.map((s) => (
+        <option key={s.user_id} value={s.user_id}>
+          {s.name}
+        </option>
+      )),
+    [staffList]
+  );
+
+  // Department dropdown list
+  const departmentOptions = useMemo(
+    () =>
+      departments.map((d) => (
+        <option key={d} value={d}>
+          {d}
+        </option>
+      )),
+    [departments]
+  );
+
   return (
     <form onSubmit={onSubmit}>
 
@@ -41,11 +69,7 @@ const LeaveForm = ({
       />
 
       <label>Start Session</label>
-      <select
-        name="start_session"
-        value={form.start_session}
-        onChange={onChange}
-      >
+      <select name="start_session" value={form.start_session} onChange={onChange}>
         <option value="Forenoon">Forenoon</option>
         <option value="Afternoon">Afternoon</option>
       </select>
@@ -60,11 +84,7 @@ const LeaveForm = ({
       />
 
       <label>End Session</label>
-      <select
-        name="end_session"
-        value={form.end_session}
-        onChange={onChange}
-      >
+      <select name="end_session" value={form.end_session} onChange={onChange}>
         <option value="Forenoon">Forenoon</option>
         <option value="Afternoon">Afternoon</option>
       </select>
@@ -77,81 +97,107 @@ const LeaveForm = ({
         onChange={onChange}
         placeholder="Enter reason for leave"
         required
-      ></textarea>
+      />
 
-      {/*Arrangement Details */}
-      <label>Arrangement Details (Optional)</label>
-      <textarea
-        name="arrangement_details"
-        value={form.arrangement_details}
-        onChange={onChange}
-        placeholder="Enter arrangement details if any"
-      ></textarea>
+      {/* ======================================== */}
+      {/*         ARRANGEMENTS SECTION             */}
+      {/* ======================================== */}
+      <h3>Alternate Arrangements Made</h3>
 
-      {/* ---------------------------------------------------------
-          SUBSTITUTE FOR STAFF (only staff visible)
-      --------------------------------------------------------- */}
-      {role === "staff" && (
-        <>
-          <label>Select Substitute Staff (Optional)</label>
-          <select
-            name="substitute_user_id"
-            value={form.substitute_user_id}
-            onChange={onChange}
-          >
-            <option value="">-- None --</option>
+      <div className="arr-table">
+        <div className="arr-row header">
+          <div className="arr-col">#</div>
 
-            {facultyList.map((f) => (
-              <option key={f.user_id} value={f.user_id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+          {role === "staff" ? (
+            <div className="arr-col">Substitute Staff</div>
+          ) : role !== "admin" ? (
+            <>
+              <div className="arr-col">Department</div>
+              <div className="arr-col">Substitute Faculty</div>
+            </>
+          ) : null}
 
+          <div className="arr-col">Arrangement Details</div>
+        </div>
 
-      {/* ---------------------------------------------------------
-          SUBSTITUTE FOR FACULTY + HOD
-          (can choose other departments but NOT management depts)
-      --------------------------------------------------------- */}
-      {role !== "staff" && role !== "admin" && (
-        <>
-          <label>Department for Substitute</label>
-          <select
-            name="department_select"
-            value={form.department_select}
-            onChange={onChange}
-          >
-            <option value="">-- Select Department --</option>
+        {/* ---------------- ROWS 1–4 ---------------- */}
+        {[1, 2, 3, 4].map((i) => {
+          // Select the correct faculty list per row
+          const facultyListForRow =
+            i === 1 ? facultyArr1 :
+            i === 2 ? facultyArr2 :
+            i === 3 ? facultyArr3 :
+                      facultyArr4;
 
-            {departments.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+          return (
+            <div className="arr-row" key={i}>
+              <div className="arr-col">{i}</div>
 
-          <label>Select Substitute Faculty (Optional)</label>
-          <select
-            name="substitute_user_id"
-            value={form.substitute_user_id}
-            onChange={onChange}
-          >
-            <option value="">-- None --</option>
+              {/* STAFF MODE */}
+              {role === "staff" && (
+                <div className="arr-col">
+                  <select
+                    name={`arr${i}_staff`}
+                    value={form[`arr${i}_staff`] || ""}
+                    onChange={onChange}
+                  >
+                    <option value="">Choose...</option>
+                    {staffOptions}
+                  </select>
+                </div>
+              )}
 
-            {staffList.map((s) => (
-              <option key={s.user_id} value={s.user_id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+              {/* FACULTY / HOD MODE */}
+              {role !== "staff" && role !== "admin" && (
+                <>
+                  {/* Department */}
+                  <div className="arr-col">
+                    <select
+                      name={`arr${i}_dept`}
+                      value={form[`arr${i}_dept`] || ""}
+                      onChange={onChange}
+                    >
+                      <option value="">Choose Dept...</option>
+                      {departmentOptions}
+                    </select>
+                  </div>
+
+                  {/* Substitute Faculty */}
+                  <div className="arr-col">
+                    <select
+                      name={`arr${i}_faculty`}
+                      value={form[`arr${i}_faculty`] || ""}
+                      onChange={onChange}
+                    >
+                      <option value="">Choose Faculty...</option>
+
+                      {facultyListForRow.map((f) => (
+                        <option key={f.user_id} value={f.user_id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Arrangement Details */}
+              <div className="arr-col">
+                <textarea
+                  name={`arr${i}_details`}
+                  value={form[`arr${i}_details`] || ""}
+                  onChange={onChange}
+                  placeholder="Enter arrangement details..."
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <button type="submit">Submit Application</button>
     </form>
   );
 };
 
-export default LeaveForm;
+export default React.memo(LeaveForm);

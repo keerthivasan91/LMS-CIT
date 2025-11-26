@@ -1,30 +1,33 @@
 import React, { useEffect } from "react";
 import axios from "../api/axiosConfig";
+import { useQuery } from "@tanstack/react-query";
 
 const NotificationBell = ({ onCounters }) => {
 
-  const loadCounters = async () => {
-    try {
-      const res = await axios.get("/api/notifications", {
-        withCredentials: true
-      });
+  // Fetch with caching
+  const { data } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () =>
+      axios
+        .get("/api/notifications", { withCredentials: true })
+        .then(res => res.data),
+    staleTime: 60000,      // cache data for 1 minute
+    refetchOnWindowFocus: false
+  });
 
-      onCounters({
-        pendingSubs: res.data.pending_subs || 0,
-        pendingHod: res.data.pending_hod || 0,
-        pendingPrincipal: res.data.pending_principal || 0
-      });
-
-    } catch (err) {
-      console.error("Failed to load notifications", err);
-    }
-  };
-
+  // Update counters only when data changes
   useEffect(() => {
-    loadCounters();
-  }, []);
+    if (!data) return;
 
-  return null; // No UI — sidebar shows numbers
+    onCounters({
+      pendingSubs: data.pending_subs || 0,
+      pendingHod: data.pending_hod || 0,
+      pendingPrincipal: data.pending_principal || 0
+    });
+
+  }, [data, onCounters]);
+
+  return null; // no UI
 };
 
-export default NotificationBell;
+export default React.memo(NotificationBell);

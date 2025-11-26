@@ -1,10 +1,14 @@
-import React, { useState, useContext } from "react";
+import React, { useContext, useCallback } from "react";
 import AuthContext from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import { NavLink } from "react-router-dom";
 
 const Navbar = ({ onCounters }) => {
   const { user, logout } = useContext(AuthContext);
+
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
 
   return (
     <nav className="navbar">
@@ -14,7 +18,6 @@ const Navbar = ({ onCounters }) => {
           Faculty Leave Management
         </NavLink>
 
-        {/* Load counters */}
         <NotificationBell onCounters={onCounters} />
 
         <div className="navbar-user">
@@ -23,13 +26,13 @@ const Navbar = ({ onCounters }) => {
             {user?.role?.toUpperCase()} - {user?.department_code}
           </div>
 
-          <button onClick={logout} className="logout-btn">Logout</button>
+          <button onClick={handleLogout} className="logout-btn">
+            Logout
+          </button>
         </div>
-
       </div>
     </nav>
   );
 };
 
-export default Navbar;
-  
+export default React.memo(Navbar);

@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import { isHOD, isAdmin, isFaculty } from "../utils/roles";
@@ -14,6 +14,12 @@ const Sidebar = ({
 
   const { user } = useContext(AuthContext);
 
+  const roleInfo = useMemo(() => ({
+    isAdmin: isAdmin(user),
+    isHod: isHOD(user),
+    isFaculty: isFaculty(user)
+  }), [user]);
+
   return (
     <aside className={`sidebar ${sidebarOpen ? "active" : ""}`}>
       <h3 style={{ textAlign: "center" }}>Menu</h3>
@@ -23,13 +29,11 @@ const Sidebar = ({
         <li>
           <NavLink to="/dashboard">
             Dashboard
-            {notifCount > 0 && (
-              <span className="notification">{notifCount}</span>
-            )}
+            {notifCount > 0 && <span className="notification">{notifCount}</span>}
           </NavLink>
         </li>
 
-        {!isAdmin(user) && (
+        {!roleInfo.isAdmin && (
           <li>
             <NavLink to="/apply">Apply For Leave</NavLink>
           </li>
@@ -39,7 +43,7 @@ const Sidebar = ({
           <NavLink to="/leave-history">Leave History</NavLink>
         </li>
 
-        {isFaculty(user) && isAdmin(user) !== true && (
+        {roleInfo.isFaculty && !roleInfo.isAdmin && (
           <li>
             <NavLink to="/substitute-requests">
               Substitute Requests
@@ -51,10 +55,9 @@ const Sidebar = ({
         )}
 
         <li><NavLink to="/holidays">Holiday Calendar</NavLink></li>
-
         <li><NavLink to="/profile">Profile</NavLink></li>
 
-        {isHOD(user) && (
+        {roleInfo.isHod && (
           <>
             <li>
               <NavLink to="/hod">
@@ -69,7 +72,7 @@ const Sidebar = ({
           </>
         )}
 
-        {isAdmin(user) && (
+        {roleInfo.isAdmin && (
           <>
             <li>
               <NavLink to="/principal-approvals">
@@ -81,9 +84,7 @@ const Sidebar = ({
             </li>
 
             <li><NavLink to="/admin/add-user">Add User</NavLink></li>
-
             <li><NavLink to="/admin/delete-user">Delete User</NavLink></li>
-
             <li><NavLink to="/admin/reset-requests">Password Reset Requests</NavLink></li>
           </>
         )}
@@ -93,4 +94,4 @@ const Sidebar = ({
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

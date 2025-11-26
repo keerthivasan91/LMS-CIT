@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
@@ -10,11 +10,17 @@ const Layout = () => {
     pendingPrincipal: 0,
   });
 
+  // prevent Navbar from re-rendering unnecessarily
+  const handleCounters = useCallback((data) => {
+    setCounters(data);
+  }, []);
+
   return (
     <>
-      <Navbar onCounters={setCounters} />
+      <Navbar onCounters={handleCounters} />
 
       <div className="page-container">
+
         <Sidebar
           pendingSubs={counters.pendingSubs}
           pendingHod={counters.pendingHod}
@@ -24,9 +30,10 @@ const Layout = () => {
         <main className="main-content">
           <Outlet />
         </main>
+
       </div>
     </>
   );
 };
 
-export default Layout;
+export default React.memo(Layout);
