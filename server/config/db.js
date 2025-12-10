@@ -21,9 +21,12 @@ pool.on('release', (connection) => {
 });
 
 // Monitor pool health
-setInterval(() => {
-  const status = pool.pool;
-  logger.info(`Pool status - Total: ${status._allConnections.length}, Free: ${status._freeConnections.length}`);
-}, 60000);
+if (process.env.NODE_ENV !== 'production') {
+  setInterval(() => {
+    const status = pool.pool;
+    logger.info(`Pool status - Total: ${status._allConnections.length}, Free: ${status._freeConnections.length}`);
+  }, 600000); // every 10 minutes
+}
+
 
 module.exports = pool;
