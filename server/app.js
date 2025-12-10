@@ -2,6 +2,7 @@ require("dotenv").config();
 const session = require("express-session");
 const express = require("express");
 const helmet = require("helmet");
+const compression = require("compression");
 const MySQLStore = require("express-mysql-session")(session);
 const sessionStore = new MySQLStore({
   host: process.env.DB_HOST,
@@ -29,25 +30,28 @@ const profileRoutes = require("./routes/profile");
 const holidayRoutes = require("./routes/holiday");
 const changePasswordRoutes = require("./routes/changepassword");
 const forgotPasswordRoutes = require("./routes/forgotpassword");
+const apiLimiter = require("./middleware/rateLimit");
 
 
 const app = express();
+app.use(compression());
+app.disable("x-powered-by");
 app.use(helmet());
 app.use(helmet.frameguard({ action: "deny" }));
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 app.use(
   session({
     key : "session_id",
     store: sessionStore,
-    secret: process.env.SESSION_SECRET || "supersecretkey",
+    secret: process.env.SESSION_SECRET ,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
-      sameSite : "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite : process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: (1000 * 60 * 30), // 30 minutes
     }
   })
@@ -57,16 +61,27 @@ app.use(morgan("combined"));
 
 app.use(rateLimit);
 
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? ['https://yourdomain.com', 'https://www.yourdomain.com']
+  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
 app.use(cors({
-  origin: "http://localhost:3000",
-  methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  allowedHeaders: "Content-Type, Authorization",
-  credentials : true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // API routes
 app.use("/", changePasswordRoutes);
 app.use("/", forgotPasswordRoutes);
+app.use("/api",apiLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api", branchRoutes);
 app.use("/api", leaveRoutes);
@@ -77,8 +92,12 @@ app.use("/api", profileRoutes);
 app.use("/api/holidays", holidayRoutes);        // <-- better consistency
 app.use("/api/notifications", require("./routes/notifications")); // <-- FIXED
 
-setInterval(() => {
-  processMailQueue();
+setInterval(async () => {
+  try {
+    await processMailQueue();
+  } catch (err) {
+    logger.error('Mail queue worker error:', err);
+  }
 }, 60000); // every 10 minutes
 
 
