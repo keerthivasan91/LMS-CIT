@@ -1,4 +1,5 @@
 const mysql = require('mysql2/promise');
+const logger = require('../services/logger');
 require('dotenv').config();
 
 const pool = mysql.createPool({
@@ -11,5 +12,18 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
+pool.on('acquire', (connection) => {
+  logger.debug(`Connection ${connection.threadId} acquired`);
+});
+
+pool.on('release', (connection) => {
+  logger.debug(`Connection ${connection.threadId} released`);
+});
+
+// Monitor pool health
+setInterval(() => {
+  const status = pool.pool;
+  logger.info(`Pool status - Total: ${status._allConnections.length}, Free: ${status._freeConnections.length}`);
+}, 60000);
 
 module.exports = pool;
