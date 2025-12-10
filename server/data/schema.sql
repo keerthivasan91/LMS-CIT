@@ -239,8 +239,23 @@ CREATE TABLE mail_queue (
   to_email VARCHAR(255) NOT NULL,
   subject VARCHAR(255) NOT NULL,
   body TEXT NOT NULL,
-  status ENUM('pending','sent','failed') DEFAULT 'pending',
+
+  -- status lifecycle
+  status ENUM('pending','processing','sent','failed','permanent_failed') NOT NULL DEFAULT 'pending',
+
+  -- retry / processing metadata
+  attempts INT NOT NULL DEFAULT 0,
+  max_attempts INT NOT NULL DEFAULT 5,
+  processing_token VARCHAR(36) DEFAULT NULL,
+  processing_started_at DATETIME DEFAULT NULL,
+  next_retry_at DATETIME DEFAULT NULL,
+
   last_error TEXT,
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_status_nextretry (status, next_retry_at),
+  INDEX idx_processing_token (processing_token)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
