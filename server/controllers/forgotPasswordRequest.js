@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const sendMail = require("../config/mailer");
+const logger = require("../services/logger");
 
 // USER → SEND FORGOT PASSWORD REQUEST
 async function requestPasswordReset(req, res, next) {
@@ -17,7 +18,12 @@ async function requestPasswordReset(req, res, next) {
     );
 
     if (user.length === 0) {
-      return res.status(404).json({ message: "Invalid User ID or Email" });
+      // Log attempt but don't reveal to user
+      logger.warn(`Password reset attempt for non-existent user: ${user_id}`);
+      return res.json({
+        ok: true,
+        message: "If your account exists, you will receive instructions."
+      });
     }
 
     // Insert into password_reset_requests table
