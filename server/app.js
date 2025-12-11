@@ -53,6 +53,7 @@ app.use(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite : process.env.NODE_ENV === 'production' ? 'none' : 'lax' , // same site means strict else none
+      domain: process.env.NODE_ENV === 'production' ? '.up.railway.app' : 'localhost',
       maxAge: (1000 * 60 * 30), // 30 minutes
     }
   })
