@@ -42,29 +42,9 @@ app.use(helmet.frameguard({ action: "deny" }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
-app.use(
-  session({
-    key : "session_id",
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET ,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite : process.env.NODE_ENV === 'production' ? 'strict' : 'lax' , // same site means strict else none
-      domain: process.env.NODE_ENV === 'production' ? '.railway.app' : 'localhost',
-      maxAge: (1000 * 60 * 30), // 30 minutes
-    }
-  })
-);
-
-app.use(morgan("combined"));
-
-app.use(rateLimit);
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://lms-cit-production-cb35.up.railway.app']
+  ? ['https://lms-cit-production-cb35.up.railway.app','https://lms-cit-production.up.railway.app']
   : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
 app.use(cors({
@@ -79,6 +59,28 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use(
+  session({
+    name : "session_id",
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET ,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite : process.env.NODE_ENV === 'production' ? 'none' : 'lax' , // same site means strict else none
+      domain: process.env.NODE_ENV === 'production' ? '.railway.app' : undefined ,
+      maxAge: (1000 * 60 * 30), // 30 minutes
+    }
+  })
+);
+
+app.use(morgan("combined"));
+
+app.use(rateLimit);
+
 
 // API routes
 app.use("/", changePasswordRoutes);
