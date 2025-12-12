@@ -77,6 +77,7 @@ const DeleteAdminUser = () => {
             <tr>
               <th>User ID</th>
               <th>Name</th>
+              <th>Department</th>
               <th>Role</th>
               <th>Action</th>
             </tr>
@@ -87,6 +88,7 @@ const DeleteAdminUser = () => {
               <tr key={u.user_id}>
                 <td>{u.user_id}</td>
                 <td>{u.name}</td>
+                <td>{u.department_code || "-"}</td>
                 <td>{u.role}</td>
                 <td>
                   <button
