@@ -17,7 +17,7 @@ const HODApproval = () => {
   const loadRequests = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/hod/requests");
+      const res = await axios.get("/hod/requests");
       setRequests(res.data.requests || []);
     } finally {
       setLoading(false);
@@ -29,12 +29,12 @@ const HODApproval = () => {
   }, []);
 
   const approve = async (id) => {
-    await axios.post(`/api/hod/approve/${id}`);
+    await axios.post(`/hod/approve/${id}`);
     loadRequests();
   };
 
   const reject = async (id) => {
-    await axios.post(`/api/hod/reject/${id}`);
+    await axios.post(`/hod/reject/${id}`);
     loadRequests();
   };
 

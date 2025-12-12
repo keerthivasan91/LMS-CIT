@@ -19,7 +19,7 @@ const PrincipalApprovals = () => {
 
   const loadRequests = async () => {
     try {
-      const res = await axios.get("/api/admin/requests");
+      const res = await axios.get("/admin/requests");
       setRequests(res.data.requests || []);
     } catch {
       setRequests([]);
@@ -27,12 +27,12 @@ const PrincipalApprovals = () => {
   };
 
   const approve = async (id) => {
-    await axios.post(`/api/admin/approve/${id}`);
+    await axios.post(`/admin/approve/${id}`);
     loadRequests();
   };
 
   const reject = async (id) => {
-    await axios.post(`/api/admin/reject/${id}`);
+    await axios.post(`/admin/reject/${id}`);
     loadRequests();
   };
 

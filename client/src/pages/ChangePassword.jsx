@@ -35,7 +35,7 @@ const PasswordPage = ({ mode = "change" }) => {
       }
 
       try {
-        const res = await axios.post("/api/admin/reset-password-final", {
+        const res = await axios.post("/admin/reset-password-final", {
           user_id: uid,
           new_password: newPassword,
         });

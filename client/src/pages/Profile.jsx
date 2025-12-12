@@ -36,7 +36,7 @@ const Profile = () => {
   // Fetch leave balance from backend
   const loadLeaveBalance = async () => {
     try {
-      const res = await axios.get("/api/leave-balance"); 
+      const res = await axios.get("/leave-balance"); 
       setLeaveBalance(res.data.leaveBalance);
       console.log("Rendering leave balance:", leaveBalance);
     } catch (err) {

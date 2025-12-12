@@ -16,7 +16,7 @@ const DeleteAdminUser = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/admin/users");
+      const res = await axios.get("/admin/users");
       setUsers(res.data.users);
     } catch (err) {
       console.error(err);
@@ -38,7 +38,7 @@ const DeleteAdminUser = () => {
 
     try {
       setDeleting(true);
-      await axios.delete(`/api/admin/delete-user/${selectedUser.user_id}`);
+      await axios.delete(`/admin/delete-user/${selectedUser.user_id}`);
 
       setMessage(`User ${selectedUser.user_id} deleted successfully`);
       setUsers(users.filter((u) => u.user_id !== selectedUser.user_id));

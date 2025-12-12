@@ -12,7 +12,7 @@ const SubstituteRequests = () => {
 
   const loadRequests = async () => {
     try {
-      const res = await axios.get("/api/substitute/requests", {
+      const res = await axios.get("/substitute/requests", {
         withCredentials: true, // SESSION-BASED
       });
 
@@ -34,7 +34,7 @@ const SubstituteRequests = () => {
   const handleAccept = async (id) => {
     try {
       await axios.post(
-        `/api/substitute/accept/${id}`,
+        `/substitute/accept/${id}`,
         {},
         { withCredentials: true }
       );
@@ -47,7 +47,7 @@ const SubstituteRequests = () => {
   const handleReject = async (id) => {
     try {
       await axios.post(
-        `/api/substitute/reject/${id}`,
+        `/substitute/reject/${id}`,
         {},
         { withCredentials: true }
       );

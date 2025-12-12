@@ -8,7 +8,7 @@ const AdminResetRequests = () => {
   const navigate = useNavigate();   // <-- FIX
 
   const load = async () => {
-    const res = await axios.get("/api/admin/reset-requests");
+    const res = await axios.get("/admin/reset-requests");
     setPending(res.data.requests);
   };
 

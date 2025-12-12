@@ -22,7 +22,7 @@ const Login = () => {
     setError("");
 
     try {
-      const res = await axios.post("/api/auth/login", form);
+      const res = await axios.post("/auth/login", form);
 
       if (!res.data?.user) {
         setError("Invalid response from server");

@@ -14,7 +14,7 @@ const Holidays = () => {
 
   const loadHolidays = async () => {
     try {
-      const res = await axios.get("/api/holidays");
+      const res = await axios.get("/holidays");
       setHolidays(res.data.holidays || []);
     } catch (error) {
       setHolidays([]);

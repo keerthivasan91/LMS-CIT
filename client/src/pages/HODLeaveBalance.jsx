@@ -11,7 +11,7 @@ const HODLeaveBalance = () => {
 
   const loadData = async () => {
     try {
-      const res = await axios.get("/api/hod/leave_balance");
+      const res = await axios.get("/hod/leave_balance");
 
       setLeaveBalances(res.data.leave_balances || []);
       setDepartment(user?.department_code || "");

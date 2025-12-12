@@ -1,11 +1,13 @@
 import React, { createContext, useEffect, useState, useCallback } from "react";
 import axios from "../api/axiosConfig";
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Stable login function
   const login = useCallback((userData) => {
@@ -14,20 +16,20 @@ export const AuthProvider = ({ children }) => {
 
   // Stable logout function
   const logout = useCallback(async () => {
+    setUser(null);
+
+    navigate("/login", { replace: true });
     try {
       await axios.post("/api/auth/logout");
     } catch (err) {
       console.error("Logout failed:", err);
     }
-
-    setUser(null);
-    window.location.href = "/login";
-  }, []);
+  }, [navigate]);
 
   // Rehydrate existing session (runs once)
   const fetchUser = useCallback(async () => {
     try {
-      const res = await axios.get("/api/auth/me");
+      const res = await axios.get("/auth/me");
       if (res.data?.user) {
         setUser(res.data.user);
       }

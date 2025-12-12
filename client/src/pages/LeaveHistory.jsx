@@ -27,7 +27,7 @@ const LeaveHistory = () => {
   const loadAll = async (dept = "") => {
     try {
       const res = await axios.get(
-        `/api/leave_history${dept ? `?department=${dept}` : ""}`,
+        `/leave_history${dept ? `?department=${dept}` : ""}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

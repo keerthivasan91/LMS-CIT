@@ -21,7 +21,7 @@ const AdminAddUser = () => {
   // Load department list from departments table
   const loadDepartments = async () => {
     try {
-      const res = await axios.get("/api/departments");
+      const res = await axios.get("/departments");
       setDepartments(res.data.departments || []);
     } catch (err) {
       console.error("Failed loading departments", err);
@@ -49,7 +49,7 @@ const AdminAddUser = () => {
     };
 
     try {
-      const res = await axios.post("/api/add-user", payload);
+      const res = await axios.post("/add-user", payload);
 
       setMessage({
         type: res.data.type || "success",

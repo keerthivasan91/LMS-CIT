@@ -79,7 +79,7 @@ const ApplyLeave = () => {
     }
 
     try {
-      const res = await axios.get(`/api/faculty/${dept.toLowerCase()}`);
+      const res = await axios.get(`/faculty/${dept.toLowerCase()}`);
       const list = res.data.faculty || [];
 
       if (row === 1) setFacultyArr1(list);
@@ -99,7 +99,7 @@ const ApplyLeave = () => {
 
     try {
       const branch = user.department_code.toLowerCase();
-      const res = await axios.get(`/api/staff/${branch}`);
+      const res = await axios.get(`/staff/${branch}`);
       setStaffList(res.data.staff || []);
     } catch (err) {
       console.error("Failed to load staff substitutes", err);
@@ -112,7 +112,7 @@ const ApplyLeave = () => {
   const loadDepartments = async () => {
     if (user?.role === "faculty" || user?.role === "hod") {
       try {
-        const res = await axios.get(`/api/branches`);
+        const res = await axios.get(`/branches`);
         setDepartments(res.data.branches || []);
       } catch (err) {
         console.error("Failed to load departments", err);
