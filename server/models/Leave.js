@@ -350,7 +350,34 @@ async function getDepartmentLeaves(dept) {
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
      WHERE u.department_code = ?
-     ORDER BY lr.applied_on DESC`,
+     ORDER BY lr.applied_on DESC  `,
+    [dept]
+  );
+
+  return rows;
+}
+
+async function getLeaveBalance(dept) {
+  const [rows] = await pool.query(
+    `SELECT 
+          u.user_id,
+          u.name,
+          u.designation,
+          lb.casual_total,
+          lb.casual_used,
+          lb.casual_total - lb.casual_used AS casual_remaining,
+          lb.rh_total,
+          lb.rh_used,
+          lb.rh_total - lb.rh_used AS rh_remaining,
+          lb.earned_total,
+          lb.earned_used,
+          lb.earned_total - lb.earned_used AS earned_remaining
+       FROM users u
+       LEFT JOIN leave_balance lb ON u.user_id = lb.user_id AND lb.academic_year = YEAR(CURDATE())
+       WHERE u.department_code = ?
+         AND u.role IN ('faculty', 'hod')
+         AND u.is_active = 1
+       ORDER BY u.name`,
     [dept]
   );
 
@@ -406,6 +433,7 @@ module.exports = {
   getApplicantDetails,
   getLeaveById,
   updateHodStatus,
+  getLeaveBalance,
   updatePrincipalStatus,
   getDepartmentLeaves,
   getDepartments,
