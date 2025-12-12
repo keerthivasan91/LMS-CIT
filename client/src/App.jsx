@@ -1,13 +1,15 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Lazy-loaded pages
+// important: Login and Dashboard are NOT lazy
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+
+// lazy-loaded pages
 const Layout = lazy(() => import("./components/Layout"));
 const AdminAddUser = lazy(() => import("./pages/AdminAddUser"));
 const AdminResetRequest = lazy(() => import("./pages/AdminResetRequests"));
-const Login = lazy(() => import("./pages/Login"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const ApplyLeave = lazy(() => import("./pages/ApplyLeave"));
 const LeaveHistory = lazy(() => import("./pages/LeaveHistory"));
 const SubstituteRequests = lazy(() => import("./pages/SubstituteRequests"));
@@ -17,28 +19,29 @@ const HODApproval = lazy(() => import("./pages/HODApproval"));
 const HODLeaveBalance = lazy(() => import("./pages/HODLeaveBalance"));
 const PrincipalApprovals = lazy(() => import("./pages/PrincipalApprovals"));
 const DeleteAdminUser = lazy(() => import("./pages/DeleteAdminUser"));
-const ProtectedRoute = lazy(() => import("./utils/ProtectedRoute"));
+
+// ProtectedRoute is NOT lazy anymore
+import ProtectedRoute from "./utils/ProtectedRoute";
+import { FullPageSpinner, DashboardSkeleton } from "./components/Fallbacks";
 
 const App = () => {
   return (
-    <Suspense fallback={<div className="loader">Loading...</div>}>
-
+    <Suspense fallback={<FullPageSpinner />}>
       <Routes>
         {/* PUBLIC */}
         <Route path="/login" element={<Login />} />
-        <Route 
-          path="/forgot-password" 
-          element={<ChangePassword mode="forgot" />} 
-        />
+        <Route path="/forgot-password" element={<ChangePassword mode="forgot" />} />
 
         {/* WRAP LAYOUT */}
         <Route path="/" element={<Layout />}>
-          
           <Route
             path="dashboard"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                {/* show lightweight skeleton while Dashboard (and any nested lazy chunks) load */}
+                <Suspense fallback={<DashboardSkeleton />}>
+                  <Dashboard />
+                </Suspense>
               </ProtectedRoute>
             }
           />
