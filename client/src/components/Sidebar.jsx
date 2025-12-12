@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useMemo, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import { isHOD, isAdmin, isFaculty } from "../utils/roles";
@@ -9,7 +9,8 @@ const Sidebar = ({
   pendingPrincipal = 0,
   notifCount = 0,
   sidebarOpen,
-  closeSidebar
+  closeSidebar,
+  isLoading = false
 }) => {
 
   const { user } = useContext(AuthContext);
@@ -20,16 +21,47 @@ const Sidebar = ({
     isFaculty: isFaculty(user)
   }), [user]);
 
-  return (
-    <aside className={`sidebar ${sidebarOpen ? "active" : ""}`}>
-      <h3 style={{ textAlign: "center" }}>Menu</h3>
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        closeSidebar();
+      }
+    };
 
-      <ul onClick={closeSidebar}>
+    if (sidebarOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [sidebarOpen, closeSidebar]);
+
+  if (isLoading) {
+    return (
+      <aside className="sidebar loading">
+        <h3 style={{ textAlign: "center" }}>Menu</h3>
+        <div className="sidebar-skeleton">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="skeleton-item" />
+          ))}
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside 
+      className={`sidebar ${sidebarOpen ? "active" : ""}`}
+      aria-label="Main navigation"
+      aria-hidden={!sidebarOpen}
+    >
+      <h3 style={{ textAlign: "center" }} id="sidebar-menu-title">Menu</h3>
+
+      <ul onClick={closeSidebar} aria-labelledby="sidebar-menu-title">
 
         <li>
-          <NavLink to="/dashboard">
+          <NavLink to="/dashboard" end>
             Dashboard
-            {notifCount > 0 && <span className="notification">{notifCount}</span>}
+            {notifCount > 0 && <span className="sidebar-badge">{notifCount}</span>}
           </NavLink>
         </li>
 
@@ -48,7 +80,7 @@ const Sidebar = ({
             <NavLink to="/substitute-requests">
               Substitute Requests
               {pendingSubs > 0 && (
-                <span className="notification">{pendingSubs}</span>
+                <span className="sidebar-badge">{pendingSubs}</span>
               )}
             </NavLink>
           </li>
@@ -63,7 +95,7 @@ const Sidebar = ({
               <NavLink to="/hod">
                 HOD Approvals
                 {pendingHod > 0 && (
-                  <span className="notification">{pendingHod}</span>
+                  <span className="sidebar-badge">{pendingHod}</span>
                 )}
               </NavLink>
             </li>
@@ -78,7 +110,7 @@ const Sidebar = ({
               <NavLink to="/principal-approvals">
                 Principal Approvals
                 {pendingPrincipal > 0 && (
-                  <span className="notification">{pendingPrincipal}</span>
+                  <span className="sidebar-badge">{pendingPrincipal}</span>
                 )}
               </NavLink>
             </li>

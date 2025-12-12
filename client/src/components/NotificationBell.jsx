@@ -9,7 +9,7 @@ const NotificationBell = ({ onCounters }) => {
     queryKey: ["notifications"],
     queryFn: async () =>
       axios
-        .get("/api/notifications", { withCredentials: true })
+        .get("/notifications", { withCredentials: true })
         .then(res => res.data),
     staleTime: 60000,      // cache data for 1 minute
     refetchOnWindowFocus: false
