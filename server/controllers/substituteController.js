@@ -103,21 +103,10 @@ async function acceptSubstitute(req, res, next) {
     /* =============================================================
    HELPER – Check if all arrangements accepted
 ============================================================= */
-    async function checkAllAccepted(conn, leave_id) {
-      const [[row]] = await conn.query(
-        `SELECT 
-        SUM(CASE WHEN status='accepted' THEN 1 ELSE 0 END) AS accepted,
-        COUNT(*) AS total
-        FROM arrangements
-        WHERE leave_id = ?`,
-        [leave_id]
-      );
-
-      return row.accepted === row.total;
-    }
+    
 
 
-    if (!allAccepted) {
+    if (!checkAllAccepted) {
       // Still pending → update leave as pending
       await conn.query(
         `UPDATE leave_requests
@@ -274,5 +263,6 @@ async function rejectSubstitute(req, res, next) {
 module.exports = {
   substituteRequestsForUser,
   acceptSubstitute,
+  checkAllAccepted,
   rejectSubstitute,
 };
