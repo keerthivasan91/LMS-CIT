@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "../api/axiosConfig";
+import { useSnackbar } from "../context/SnackbarContext";
 
 const AdminAddUser = () => {
   const [departments, setDepartments] = useState([]);
+  const { showSnackbar } = useSnackbar();
 
   const [form, setForm] = useState({
     user_id: "",
@@ -51,10 +53,10 @@ const AdminAddUser = () => {
     try {
       const res = await axios.post("/add-user", payload);
 
-      setMessage({
-        type: res.data.type || "success",
-        text: res.data.message
-      });
+      showSnackbar(
+        res.data.message || "User added successfully!", 
+        "success"
+      );
 
       setForm({
         user_id: "",
@@ -69,10 +71,10 @@ const AdminAddUser = () => {
       });
 
     } catch (err) {
-      setMessage({
-        type: "error",
-        text: err.response?.data?.message || "Something went wrong",
-      });
+      showSnackbar(
+        err.response?.data?.message || "Failed to add user",
+        "error"
+      );
     }
   };
 
@@ -82,11 +84,6 @@ const AdminAddUser = () => {
       <div className="apply-leave-card" style={{ maxWidth: "600px" }}>
         <h2>Add New User</h2>
 
-        {message.text && (
-          <div className={message.type === "success" ? "pass" : "error"}>
-            {message.text}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           <label>User ID</label>

@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
+import {useSnackbar} from "../context/SnackbarContext";
 import LeaveForm from "../components/LeaveForm";
 import "../App.css";
 
 const ApplyLeave = () => {
   const { user } = useContext(AuthContext);
+  const { showSnackbar } = useSnackbar();
 
   /* ------------------------------------------------------------
      FORM STATE WITH 4 ARRANGEMENT ROWS
@@ -129,8 +131,8 @@ const ApplyLeave = () => {
     const payload = { ...form };
 
     try {
-      await axios.post("/api/apply", payload);
-      alert("Leave applied successfully!");
+      await axios.post("/apply", payload);
+      showSnackbar("Leave applied successfully!", "success");
 
       // Reset again
       setForm({
@@ -165,7 +167,7 @@ const ApplyLeave = () => {
 
     } catch (err) {
       console.error("ERROR submitting leave:", err);
-      alert("Error submitting leave");
+      showSnackbar("Error submitting leave", "error");
     }
   };
 

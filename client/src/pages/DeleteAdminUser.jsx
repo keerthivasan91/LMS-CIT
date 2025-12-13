@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
+import { useSnackbar } from "../context/SnackbarContext";
 import "../App.css"; // IMPORT CSS FILE
 
 const DeleteAdminUser = () => {
   const { user } = useContext(AuthContext);
+  const { showSnackbar } = useSnackbar(); 
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [message, setMessage] = useState("");
 
   const loadUsers = async () => {
     try {
@@ -40,12 +41,12 @@ const DeleteAdminUser = () => {
       setDeleting(true);
       await axios.delete(`/admin/delete-user/${selectedUser.user_id}`);
 
-      setMessage(`User ${selectedUser.user_id} deleted successfully`);
+      showSnackbar(`User ${selectedUser.user_id} deleted successfully`, "success");
       setUsers(users.filter((u) => u.user_id !== selectedUser.user_id));
       setSelectedUser(null);
     } catch (err) {
       console.error(err);
-      setMessage("Failed to delete user");
+      showSnackbar("Failed to delete user", "error");
     }
 
     setDeleting(false);
@@ -59,7 +60,6 @@ const DeleteAdminUser = () => {
     <div className="delete-admin-container">
       <h2>Delete User (Admin / Principal)</h2>
 
-      {message && <div className="success-msg">{message}</div>}
 
       <input
         type="text"

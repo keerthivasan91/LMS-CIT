@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/axiosConfig";
+import { useSnackbar } from "../context/SnackbarContext";
 import "../App.css";
 
 const SubstituteRequests = () => {
   const [requests, setRequests] = useState([]);
+  const { showSnackbar } = useSnackbar();
 
   const formatDate = (iso) => {
     if (!iso) return "";
@@ -40,7 +42,7 @@ const SubstituteRequests = () => {
       );
       loadRequests();
     } catch (err) {
-      alert("Error accepting request");
+      showSnackbar("Error accepting request", "error");
     }
   };
 
@@ -53,7 +55,7 @@ const SubstituteRequests = () => {
       );
       loadRequests();
     } catch (err) {
-      alert("Error rejecting request");
+      showSnackbar("Error rejecting request", "error");
     }
   };
 

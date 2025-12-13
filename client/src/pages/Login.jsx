@@ -1,10 +1,12 @@
 import React, { useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
+import { useSnackbar } from '../context/SnackbarContext';
 import "../App.css";
 
 const Login = () => {
   const { setUser } = useContext(AuthContext);
+  const { showSnackbar } = useSnackbar();
 
   const [form, setForm] = useState({
     user_id: "",
@@ -25,7 +27,7 @@ const Login = () => {
       const res = await axios.post("/auth/login", form);
 
       if (!res.data?.user) {
-        setError("Invalid response from server");
+        showSnackbar("Invalid response from server", "error");
         return;
       }
 
@@ -37,7 +39,7 @@ const Login = () => {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Invalid user ID or password");
+      showSnackbar(err.response?.data?.message || "Invalid user ID or password", "error");
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "../api/axiosConfig";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSnackbar } from '../context/SnackbarContext'; // ← Import hook, not function
 
 const PasswordPage = ({ mode = "change" }) => {
   const navigate = useNavigate();
@@ -17,20 +18,19 @@ const PasswordPage = ({ mode = "change" }) => {
   // Change-password fields
   const [currentPassword, setCurrentPassword] = useState("");
 
-  // Messages
-  const [message, setMessage] = useState(null);
-  const [type, setType] = useState(null);
+  // Remove these states if you're only using snackbar
+  // const [message, setMessage] = useState("");
+  // const [type, setType] = useState("");
+
+  const { showSnackbar } = useSnackbar(); // ← Correct usage
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    /* ----------------------------------------------------------
-       1. ADMIN RESET MODE
-    ---------------------------------------------------------- */
+    // ADMIN RESET MODE
     if (mode === "admin-reset") {
       if (newPassword !== confirmPassword) {
-        setType("error");
-        setMessage("Passwords do not match.");
+        showSnackbar("Passwords do not match.", "error");
         return;
       }
 
@@ -40,19 +40,15 @@ const PasswordPage = ({ mode = "change" }) => {
           new_password: newPassword,
         });
 
-        setType("success");
-        setMessage(res.data.message);
+        showSnackbar(res.data.message, "success");
         setTimeout(() => navigate("/admin/reset-requests"), 1500);
       } catch (err) {
-        setType("error");
-        setMessage(err.response?.data?.message || "Reset failed");
+        showSnackbar(err.response?.data?.message || "Reset failed", "error");
       }
       return;
     }
 
-    /* ----------------------------------------------------------
-       2. FORGOT PASSWORD REQUEST
-    ---------------------------------------------------------- */
+    // FORGOT PASSWORD REQUEST
     if (mode === "forgot") {
       try {
         const res = await axios.post("/forgot-password-request", {
@@ -60,22 +56,17 @@ const PasswordPage = ({ mode = "change" }) => {
           email: email,
         });
 
-        setType("success");
-        setMessage(res.data.message);
+        showSnackbar(res.data.message, "success");
         setTimeout(() => navigate("/login"), 1500);
       } catch (err) {
-        setType("error");
-        setMessage(err.response?.data?.message || "Request failed");
+        showSnackbar(err.response?.data?.message || "Request failed", "error");
       }
       return;
     }
 
-    /* ----------------------------------------------------------
-       3. NORMAL USER CHANGE PASSWORD
-    ---------------------------------------------------------- */
+    // NORMAL USER CHANGE PASSWORD
     if (newPassword !== confirmPassword) {
-      setType("error");
-      setMessage("New password & confirm password do not match.");
+      showSnackbar("New password & confirm password do not match.", "error");
       return;
     }
 
@@ -85,12 +76,10 @@ const PasswordPage = ({ mode = "change" }) => {
         new_password: newPassword,
       });
 
-      setType("success");
-      setMessage(res.data.message);
+      showSnackbar(res.data.message, "success");
       setTimeout(() => navigate("/profile"), 1500);
     } catch (err) {
-      setType("error");
-      setMessage(err.response?.data?.message || "Error changing password");
+      showSnackbar(err.response?.data?.message || "Error changing password", "error");
     }
   };
 
@@ -107,25 +96,21 @@ const PasswordPage = ({ mode = "change" }) => {
       </div>
 
       <div className="card-body">
-        {message && (
-          <div
-            style={{
-              marginBottom: "15px",
-              padding: "10px",
-              color: "#fff",
-              backgroundColor: type === "success" ? "green" : "red",
-              borderRadius: "5px",
-            }}
-          >
+        {/* Remove old message display since we're using snackbar */}
+        {/* {message && (
+          <div style={{
+            marginBottom: "15px",
+            padding: "10px",
+            color: "#fff",
+            backgroundColor: type === "success" ? "green" : "red",
+            borderRadius: "5px",
+          }}>
             {message}
           </div>
-        )}
+        )} */}
 
         <form onSubmit={handleSubmit}>
-
-          {/* ----------------------------------------------------------
-              ADMIN RESET UI
-          ---------------------------------------------------------- */}
+          {/* ADMIN RESET UI */}
           {mode === "admin-reset" && (
             <>
               <label className="form-label">New Password</label>
@@ -150,9 +135,7 @@ const PasswordPage = ({ mode = "change" }) => {
             </>
           )}
 
-          {/* ----------------------------------------------------------
-              FORGOT PASSWORD UI
-          ---------------------------------------------------------- */}
+          {/* FORGOT PASSWORD UI */}
           {mode === "forgot" && (
             <>
               <label className="form-label">User ID</label>
@@ -176,12 +159,10 @@ const PasswordPage = ({ mode = "change" }) => {
             </>
           )}
 
-          {/* ----------------------------------------------------------
-              NORMAL CHANGE PASSWORD UI
-          ---------------------------------------------------------- */}
+          {/* NORMAL CHANGE PASSWORD UI */}
           {mode === "change" && (
             <>
-                <br></br>
+              <br />
               <label className="form-label">Current Password</label>
               <input
                 type="password"
@@ -240,7 +221,6 @@ const PasswordPage = ({ mode = "change" }) => {
           >
             Cancel
           </button>
-
         </form>
       </div>
     </div>
