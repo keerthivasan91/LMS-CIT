@@ -83,8 +83,8 @@ app.use(rateLimit);
 
 
 // API routes
-app.use("/", changePasswordRoutes);
-app.use("/", forgotPasswordRoutes);
+app.use("/api", changePasswordRoutes);
+app.use("/api", forgotPasswordRoutes);
 app.use("/api",apiLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api", branchRoutes);
