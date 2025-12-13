@@ -2,7 +2,7 @@ const LeaveModel = require("../models/Leave");
 const sendMail = require("../config/mailer");
 
 async function approveLeave(leaveId) {
-  const applicant = await LeaveModel.getLeaveApplicant(leaveId);
+  const applicant = await LeaveModel.getApplicantDetails(leaveId);
   if (!applicant) throw new Error("Leave not found");
 
   await LeaveModel.updateHodStatus(leaveId, "approved");
