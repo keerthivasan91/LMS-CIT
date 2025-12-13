@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
     navigate("/login", { replace: true });
     try {
-      await axios.post("/api/auth/logout");
+      await axios.post("/auth/logout");
     } catch (err) {
       console.error("Logout failed:", err);
     }
