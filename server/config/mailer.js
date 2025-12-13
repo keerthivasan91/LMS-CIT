@@ -1,35 +1,13 @@
 // server/config/mailer.js
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 const logger = require("../services/logger");
 const queueEmail = require("../utils/mailQueue");
 
-// We keep transporter for worker (not used here anymore)
-const transporter = nodemailer.createTransport({
-  service: process.env.MAIL_SERVICE || "gmail",
-  host: process.env.MAIL_HOST,
-  port: process.env.MAIL_PORT || 587,
-  secure: process.env.MAIL_SECURE === "true",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  }
-});
-
-// Verify SMTP connection for debugging only
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ Email server connection failed:", error.message);
-  } else {
-    console.log("📨 Email server is ready (SMTP verification successful)");
-  }
-});
-
 /**
- * Queue Email Instead of Sending Directly
- * ---------------------------------------
- * This function NO LONGER sends mail immediately.
- * It only inserts the mail into `mail_queue`.
- * The worker will send the email asynchronously.
+ * Queue Email (unchanged)
+ * -----------------------
+ * Still queues mail into DB.
+ * Worker or controller will call Brevo API.
  */
 async function sendMail(to, subject, html) {
   try {
@@ -39,11 +17,53 @@ async function sendMail(to, subject, html) {
     console.log(`📥 Email queued → ${to} (queue_id=${queueId})`);
 
     return queueId;
-
   } catch (err) {
     console.error("❌ Failed to queue email:", err.message);
     logger.error(`Failed to queue email to ${to}: ${err.message}`);
+    throw err;
   }
 }
 
-module.exports = sendMail;
+/**
+ * ACTUAL EMAIL SENDER (Brevo API)
+ * --------------------------------
+ * This should be called from your worker.
+ */
+async function sendViaBrevo(to, subject, html) {
+  try {
+    const res = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "LMS-CIT",
+          email: process.env.MAIL_FROM || "superbob991@gmail.com"
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
+      }
+    );
+
+    console.log(`📨 Email sent to ${to}`);
+    return res.data;
+
+  } catch (err) {
+    console.error(
+      "❌ Brevo email failed:",
+      err.response?.data || err.message
+    );
+    throw err;
+  }
+}
+
+module.exports = {
+  sendMail,
+  sendViaBrevo
+};
