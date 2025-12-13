@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
+
 // important: Login and Dashboard are NOT lazy
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -24,8 +25,11 @@ const DeleteAdminUser = lazy(() => import("./pages/DeleteAdminUser"));
 import ProtectedRoute from "./utils/ProtectedRoute";
 import { FullPageSpinner, DashboardSkeleton } from "./components/Fallbacks";
 
+import { SnackbarProvider } from './context/SnackbarContext';
+
 const App = () => {
   return (
+    <SnackbarProvider>
     <Suspense fallback={<FullPageSpinner />}>
       <Routes>
         {/* PUBLIC */}
@@ -173,7 +177,9 @@ const App = () => {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
+    </SnackbarProvider>
   );
+  
 };
 
 export default App;
