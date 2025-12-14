@@ -36,7 +36,7 @@ const HODLeaveBalance = () => {
           <table className="approval-table">
             <thead>
               <tr>
-                <th>Faculty</th>
+                <th>Faculty</th><th>Designation</th>
                 <th>Casual (Used / Total)</th>
                 <th>Earned (Used / Total)</th>
                 <th>RH (Used / Total)</th>
@@ -48,6 +48,7 @@ const HODLeaveBalance = () => {
               {leaveBalances.map((lb, index) => (
                 <tr key={index}>
                   <td>{lb.name}</td>
+                  <td>{lb.designation}</td>
 
                   <td>
                     {lb.casual_used} / {lb.casual_total}

@@ -49,10 +49,11 @@ const HODApproval = () => {
               <tr>
                 <th>ID</th>
                 <th>Requester</th>
+                <th>Designation</th>
                 <th>Type</th>
                 <th>Start</th>
                 <th>End</th>
-                <th>Substitute</th>
+                <th>Days</th>
                 <th>Sub Status</th>
                 <th>HOD Status</th>
                 <th>Action</th>
@@ -64,21 +65,22 @@ const HODApproval = () => {
                 <tr key={r.leave_id}>
                   <td>{r.leave_id}</td>
                   <td>{r.requester_name}</td>
+                  <td>{r.designation}</td>
                   <td>{r.leave_type}</td>
                   <td>{formatDate(r.start_date)}</td>
                   <td>{formatDate(r.end_date)}</td>
-                  <td>{r.substitute_name || "None"}</td>
-                  <td>{r.substitute_status}</td>
+                  <td>{r.days}</td>
+                  <td>{r.final_substitute_status}</td>
                   <td>{r.hod_status}</td>
 
                   <td>
                     {r.hod_status === "pending" ? (
                       <>
-                        <button className="approve-btn" onClick={() => approve(r.leave_id)}>
+                        <button className="action-accept" onClick={() => approve(r.leave_id)}>
                           Approve
                         </button>
                         {" | "}
-                        <button className="reject-btn" onClick={() => reject(r.leave_id)}>
+                        <button className="action-reject" onClick={() => reject(r.leave_id)}>
                           Reject
                         </button>
                       </>
