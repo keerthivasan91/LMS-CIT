@@ -39,7 +39,6 @@ const PrincipalApprovals = () => {
   return (
     <div className="history-container">
       <h2>Principal Approvals</h2>
-
       {requests.length ? (
         <table className="approval-table">
           <thead>
@@ -50,8 +49,7 @@ const PrincipalApprovals = () => {
               <th>Type</th>
               <th>Start</th>
               <th>End</th>
-              <th>Substitute</th>
-              <th>Sub Status</th>
+              <th>Days</th>
               <th>HOD Status</th>
               <th>Principal Status</th>
               <th>Action</th>
@@ -67,19 +65,18 @@ const PrincipalApprovals = () => {
                 <td>{r.leave_type}</td>
                 <td>{formatDate(r.start_date)}</td>
                 <td>{formatDate(r.end_date)}</td>
-                <td>{r.substitute_name || "None"}</td>
-                <td>{r.substitute_status}</td>
+                <td>{r.days}</td>
                 <td>{r.hod_status}</td>
                 <td>{r.principal_status}</td>
 
                 <td>
                   {r.principal_status === "pending" ? (
                     <>
-                      <button className="approve-btn" onClick={() => approve(r.leave_id)}>
+                      <button className="action-accept" onClick={() => approve(r.leave_id)}>
                         Approve
                       </button>
                       {" | "}
-                      <button className="reject-btn" onClick={() => reject(r.leave_id)}>
+                      <button className="action-reject" onClick={() => reject(r.leave_id)}>
                         Reject
                       </button>
                     </>
