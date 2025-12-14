@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
-import { useSnackbar } from "./context/SnackbarContext";
+import { useSnackbar } from "../context/snackbarContext";
 import LeaveForm from "../components/LeaveForm";
 import "../App.css";
 
