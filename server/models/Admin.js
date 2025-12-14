@@ -8,33 +8,13 @@ const LeaveModel = require("./Leave");
 ============================================================ */
 async function getPrincipalPending() {
   const [rows] = await pool.query(
-    `SELECT 
-        lr.leave_id,
-        lr.user_id,
-        lr.department_code,
-        lr.leave_type,
-        lr.start_date,
-        lr.start_session,
-        lr.end_date,
-        lr.end_session,
-        lr.reason,
-        lr.days,
-        lr.hod_status,
-        lr.principal_status,
-        lr.final_status,
-        lr.applied_on,
-        u1.name AS requester_name,
-        u2.name AS substitute_name,
-        a.substitute_id,
-        a.status AS substitute_status,
-        a.details AS substitute_details
+    `SELECT lr.*, u.name AS requester_name,
+            u.department_code as dept
      FROM leave_requests lr
-     LEFT JOIN users u1 ON lr.user_id = u1.user_id
-     LEFT JOIN arrangements a ON lr.leave_id = a.leave_id
-     LEFT JOIN users u2 ON a.substitute_id = u2.user_id
-     WHERE lr.hod_status = 'approved'
-       AND lr.principal_status = 'pending'
-       AND lr.leave_type = 'OOD'
+     JOIN users u ON lr.user_id = u.user_id
+     WHERE lr.principal_status = 'pending'
+       AND lr.hod_status = 'approved'
+       AND lr.final_status = 'pending'
      ORDER BY lr.applied_on DESC`
   );
   return rows;

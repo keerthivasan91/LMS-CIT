@@ -34,15 +34,28 @@ async function insertLeaveRequest(conn, data) {
   let principal_status = null;
   let final_substitute_status = "pending";
 
-  // If no substitutes → auto accept substitute stage
+  // Determine workflow based on hasSubstitutes and userRole
   if (!hasSubstitutes) {
     final_substitute_status = "accepted";
 
     if (userRole === "hod") {
       hod_status = "approved";          // HOD applying → skip HOD stage
       principal_status = "pending";
-    } else {
-      hod_status = "pending";           // Faculty applies → goes to HOD
+    } else if (userRole === "faculty" || userRole === "staff") {
+      hod_status = "pending";           // Faculty/Staff applies → goes to HOD
+    } else if (userRole === "principal") {
+      hod_status = "approved";          // Principal applies → skip to principal
+      principal_status = "pending";
+    }
+  } else {
+    // Has substitutes
+    if (userRole === "hod") {
+      hod_status = null;  // Wait for substitutes first
+    } else if (userRole === "faculty" || userRole === "staff") {
+      hod_status = null;  // Wait for substitutes first
+    } else if (userRole === "principal") {
+      hod_status = "approved";  // Principal gets auto HOD approval
+      principal_status = null;  // Still need substitutes
     }
   }
 
@@ -93,7 +106,7 @@ async function insertArrangement(conn, leave_id, substitute_id, details = null, 
 ======================================================================== */
 async function getSubstituteDetails(subId) {
   const [[row]] = await pool.query(
-    `SELECT user_id, name, email, department_code
+    `SELECT user_id, name, email, department_code, role
      FROM users
      WHERE user_id = ?
      LIMIT 1`,
@@ -108,10 +121,11 @@ async function getSubstituteDetails(subId) {
 ======================================================================== */
 async function getArrangementsByLeave(leaveId) {
   const [rows] = await pool.query(
-    `SELECT *
-     FROM arrangements
-     WHERE leave_id = ?
-     ORDER BY arrangement_id ASC`,
+    `SELECT a.*, u.name as substitute_name, u.email as substitute_email
+     FROM arrangements a
+     LEFT JOIN users u ON a.substitute_id = u.user_id
+     WHERE a.leave_id = ?
+     ORDER BY a.arrangement_id ASC`,
     [leaveId]
   );
 
@@ -120,79 +134,106 @@ async function getArrangementsByLeave(leaveId) {
 
 /* ========================================================================
    5) UPDATE ARRANGEMENT STATUS
-      AND SYNC final_substitute_status PROPERLY
 ======================================================================== */
 async function updateArrangementStatus(arrangementId, status) {
-  // 1 — Update arrangement row
-  await pool.query(
-    `UPDATE arrangements
-     SET status = ?, responded_on = NOW()
-     WHERE arrangement_id = ?`,
-    [status, arrangementId]
-  );
+  const conn = await pool.getConnection();
+  
+  try {
+    await conn.beginTransaction();
 
-  // 2 — Get leave ID
-  const [[row]] = await pool.query(
-    `SELECT leave_id
-     FROM arrangements
-     WHERE arrangement_id = ?
-     LIMIT 1`,
-    [arrangementId]
-  );
+    // 1 — Update arrangement row
+    await conn.query(
+      `UPDATE arrangements
+       SET status = ?, responded_on = NOW()
+       WHERE arrangement_id = ?`,
+      [status, arrangementId]
+    );
 
-  if (!row) return;
+    // 2 — Get leave ID and arrangements
+    const [[arrangement]] = await conn.query(
+      `SELECT leave_id FROM arrangements WHERE arrangement_id = ?`,
+      [arrangementId]
+    );
 
-  const leaveId = row.leave_id;
+    if (!arrangement) {
+      await conn.rollback();
+      return { success: false, message: "Arrangement not found" };
+    }
 
-  // 3 — Get all arrangement statuses
-  const [arrs] = await pool.query(
-    `SELECT status
-     FROM arrangements
-     WHERE leave_id = ?`,
-    [leaveId]
-  );
+    const leaveId = arrangement.leave_id;
 
-  const statuses = arrs.map(a => a.status);
-
-  /* CASE A — ANY rejected */
-  if (statuses.includes("rejected")) {
-    await pool.query(
-      `UPDATE leave_requests
-       SET final_substitute_status='rejected',
-           final_status='rejected',
-           hod_status=NULL,
-           principal_status=NULL,
-           updated_at=NOW()
-       WHERE leave_id = ?`,
+    // 3 — Get all arrangement statuses for this leave
+    const [arrangements] = await conn.query(
+      `SELECT status FROM arrangements WHERE leave_id = ?`,
       [leaveId]
     );
-    return;
-  }
 
-  /* CASE B — ALL accepted */
-  const allAccepted = statuses.length > 0 && statuses.every(s => s === "accepted");
+    const statuses = arrangements.map(a => a.status);
+    const allArrangementsCount = arrangements.length;
 
-  if (allAccepted) {
-    await pool.query(
+    // 4 — Determine final_substitute_status
+    let finalSubstituteStatus = "pending";
+    
+    if (statuses.includes("rejected")) {
+      finalSubstituteStatus = "rejected";
+    } else if (allArrangementsCount > 0 && statuses.every(s => s === "accepted")) {
+      finalSubstituteStatus = "accepted";
+    }
+
+    // 5 — Update leave_requests
+    await conn.query(
       `UPDATE leave_requests
-       SET final_substitute_status='accepted',
-           hod_status='pending',
-           principal_status=NULL,
-           updated_at=NOW()
+       SET final_substitute_status = ?,
+           updated_at = NOW()
        WHERE leave_id = ?`,
-      [leaveId]
+      [finalSubstituteStatus, leaveId]
     );
-    return;
-  }
 
-  /* CASE C — Still pending */
-  await pool.query(
-    `UPDATE leave_requests
-     SET final_substitute_status='pending',
-         updated_at=NOW()
-     WHERE leave_id = ?`,
-    [leaveId]
-  );
+    // 6 — If all substitutes accepted, set hod_status to pending if needed
+    if (finalSubstituteStatus === "accepted") {
+      const [[leave]] = await conn.query(
+        `SELECT hod_status, user_id, department_code FROM leave_requests WHERE leave_id = ?`,
+        [leaveId]
+      );
+
+      if (!leave.hod_status) {
+        const [[user]] = await conn.query(
+          `SELECT role FROM users WHERE user_id = ?`,
+          [leave.user_id]
+        );
+
+        if (user.role === "hod" || user.role === "principal") {
+          // HOD or Principal applying - auto approve HOD stage
+          await conn.query(
+            `UPDATE leave_requests
+             SET hod_status = 'approved',
+                 principal_status = CASE WHEN ? = 'principal' THEN 'pending' ELSE NULL END,
+                 updated_at = NOW()
+             WHERE leave_id = ?`,
+            [user.role, leaveId]
+          );
+        } else {
+          // Faculty/Staff - set hod_status to pending
+          await conn.query(
+            `UPDATE leave_requests
+             SET hod_status = 'pending',
+                 updated_at = NOW()
+             WHERE leave_id = ?`,
+            [leaveId]
+          );
+        }
+      }
+    }
+
+    await conn.commit();
+    return { success: true, leaveId };
+
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
 }
 
 /* ========================================================================
@@ -200,10 +241,14 @@ async function updateArrangementStatus(arrangementId, status) {
 ======================================================================== */
 async function getAppliedLeaves(user_id) {
   const [rows] = await pool.query(
-    `SELECT lr.*, u.name AS requester_name
+    `SELECT lr.*, u.name AS requester_name,
+            COUNT(DISTINCT a.arrangement_id) as arrangement_count,
+            SUM(CASE WHEN a.status = 'accepted' THEN 1 ELSE 0 END) as accepted_count
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
+     LEFT JOIN arrangements a ON lr.leave_id = a.leave_id
      WHERE lr.user_id = ?
+     GROUP BY lr.leave_id
      ORDER BY lr.applied_on DESC
      LIMIT 20`,
     [user_id]
@@ -213,7 +258,7 @@ async function getAppliedLeaves(user_id) {
 }
 
 /* ========================================================================
-   7) SUBSTITUTE REQUESTS (New — from arrangements)
+   7) SUBSTITUTE REQUESTS
 ======================================================================== */
 async function getSubstituteRequests(user_id) {
   const [rows] = await pool.query(
@@ -221,6 +266,7 @@ async function getSubstituteRequests(user_id) {
         a.arrangement_id,
         a.status AS arrangement_status,
         a.details,
+        a.responded_on,
         lr.leave_id,
         lr.leave_type,
         lr.start_date,
@@ -228,7 +274,10 @@ async function getSubstituteRequests(user_id) {
         lr.start_session,
         lr.end_session,
         lr.reason,
-        u.name AS requester_name
+        lr.final_substitute_status,
+        u.name AS requester_name,
+        u.email AS requester_email,
+        u.phone AS requester_phone
      FROM arrangements a
      JOIN leave_requests lr ON a.leave_id = lr.leave_id
      JOIN users u ON lr.user_id = u.user_id
@@ -245,7 +294,7 @@ async function getSubstituteRequests(user_id) {
 ======================================================================== */
 async function getApplicantDetails(leaveId) {
   const [[row]] = await pool.query(
-    `SELECT u.user_id, u.name, u.email
+    `SELECT u.user_id, u.name, u.email, u.department_code, u.role
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
      WHERE lr.leave_id = ?
@@ -257,13 +306,18 @@ async function getApplicantDetails(leaveId) {
 }
 
 /* ========================================================================
-   9) GET LEAVE BY ID
+   9) GET LEAVE BY ID WITH DETAILS
 ======================================================================== */
 async function getLeaveById(id) {
   const [[row]] = await pool.query(
-    `SELECT *
-     FROM leave_requests
-     WHERE leave_id = ?
+    `SELECT lr.*, 
+            u.name as requester_name,
+            u.email as requester_email,
+            u.department_code as requester_dept,
+            u.role as requester_role
+     FROM leave_requests lr
+     JOIN users u ON lr.user_id = u.user_id
+     WHERE lr.leave_id = ?
      LIMIT 1`,
     [id]
   );
@@ -272,17 +326,21 @@ async function getLeaveById(id) {
 }
 
 /* ========================================================================
-   10) HOD — PENDING REQUESTS (ONLY after substitutes accepted)
+   10) HOD — PENDING REQUESTS
 ======================================================================== */
 async function getPendingHodRequests(department_code, hod_id) {
   const [rows] = await pool.query(
-    `SELECT lr.*, u.name AS requester_name
+    `SELECT lr.*, u.name AS requester_name, u.designation,
+            COUNT(DISTINCT a.arrangement_id) as total_arrangements,
+            SUM(CASE WHEN a.status = 'accepted' THEN 1 ELSE 0 END) as accepted_arrangements
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
+     LEFT JOIN arrangements a ON lr.leave_id = a.leave_id
      WHERE lr.hod_status = 'pending'
        AND lr.final_substitute_status = 'accepted'
        AND u.department_code = ?
        AND lr.user_id != ?
+     GROUP BY lr.leave_id
      ORDER BY lr.applied_on DESC`,
     [department_code, hod_id]
   );
@@ -294,25 +352,40 @@ async function getPendingHodRequests(department_code, hod_id) {
    11) HOD APPROVAL
 ======================================================================== */
 async function updateHodStatus(leaveId, status) {
-  if (status === "approved") {
-    await pool.query(
-      `UPDATE leave_requests
-       SET hod_status='approved',
-           principal_status='pending',
-           updated_at=NOW()
-       WHERE leave_id = ?`,
-      [leaveId]
-    );
-  } else {
-    await pool.query(
-      `UPDATE leave_requests
-       SET hod_status='rejected',
-           principal_status='rejected',
-           final_status='rejected',
-           updated_at=NOW()
-       WHERE leave_id = ?`,
-      [leaveId]
-    );
+  const conn = await pool.getConnection();
+  
+  try {
+    await conn.beginTransaction();
+
+    if (status === "approved") {
+      await conn.query(
+        `UPDATE leave_requests
+         SET hod_status = 'approved',
+             principal_status = 'pending',
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [leaveId]
+      );
+    } else {
+      await conn.query(
+        `UPDATE leave_requests
+         SET hod_status = 'rejected',
+             principal_status = 'rejected',
+             final_status = 'rejected',
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [leaveId]
+      );
+    }
+
+    await conn.commit();
+    return { success: true };
+
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
   }
 }
 
@@ -320,24 +393,88 @@ async function updateHodStatus(leaveId, status) {
    12) PRINCIPAL APPROVAL
 ======================================================================== */
 async function updatePrincipalStatus(leaveId, status) {
-  if (status === "approved") {
-    await pool.query(
-      `UPDATE leave_requests
-       SET principal_status='approved',
-           final_status='approved',
-           processed_on=NOW()
-       WHERE leave_id = ?`,
-      [leaveId]
-    );
-  } else {
-    await pool.query(
-      `UPDATE leave_requests
-       SET principal_status='rejected',
-           final_status='rejected',
-           processed_on=NOW()
-       WHERE leave_id = ?`,
-      [leaveId]
-    );
+  const conn = await pool.getConnection();
+  
+  try {
+    await conn.beginTransaction();
+
+    if (status === "approved") {
+      await conn.query(
+        `UPDATE leave_requests
+         SET principal_status = 'approved',
+             final_status = 'approved',
+             processed_on = NOW(),
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [leaveId]
+      );
+
+      // Update leave balance if needed
+      const [[leave]] = await conn.query(
+        `SELECT user_id, leave_type FROM leave_requests WHERE leave_id = ?`,
+        [leaveId]
+      );
+
+      if (leave.leave_type) {
+        // Calculate days
+        const [[days]] = await conn.query(
+          `SELECT 
+            CASE 
+              WHEN start_date = end_date AND start_session = 'Full' AND end_session = 'Full' THEN 1
+              WHEN start_date = end_date AND start_session != end_session THEN 0.5
+              WHEN start_date != end_date THEN 
+                DATEDIFF(end_date, start_date) + 1
+              ELSE 1
+            END as total_days
+           FROM leave_requests WHERE leave_id = ?`,
+          [leaveId]
+        );
+
+        const totalDays = days.total_days || 0;
+
+        // Update leave balance
+        if (totalDays > 0) {
+          const leaveTypeMap = {
+            'Casual Leave': 'casual',
+            'Earned Leave': 'earned',
+            'RH': 'rh',
+            'Optional Holiday': 'optional'
+          };
+
+          const field = leaveTypeMap[leave.leave_type] || 'casual';
+          const usedField = `${field}_used`;
+
+          await conn.query(
+            `INSERT INTO leave_balance 
+             (user_id, academic_year, ${usedField})
+             VALUES (?, YEAR(CURDATE()), ?)
+             ON DUPLICATE KEY UPDATE
+             ${usedField} = ${usedField} + ?`,
+            [leave.user_id, totalDays, totalDays]
+          );
+        }
+      }
+
+    } else {
+      await conn.query(
+        `UPDATE leave_requests
+         SET principal_status = 'rejected',
+             final_status = 'rejected',
+             processed_on = NOW(),
+             updated_at = NOW()
+         WHERE leave_id = ?`,
+        [leaveId]
+      );
+    }
+
+    await conn.commit();
+    return { success: true };
+
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
   }
 }
 
@@ -346,36 +483,40 @@ async function updatePrincipalStatus(leaveId, status) {
 ======================================================================== */
 async function getDepartmentLeaves(dept) {
   const [rows] = await pool.query(
-    `SELECT lr.*, u.name AS requester_name
+    `SELECT lr.*, u.name AS requester_name, u.designation,
+            (SELECT COUNT(*) FROM arrangements WHERE leave_id = lr.leave_id) as arrangement_count
      FROM leave_requests lr
      JOIN users u ON lr.user_id = u.user_id
      WHERE u.department_code = ?
-     ORDER BY lr.applied_on DESC  `,
+     ORDER BY lr.applied_on DESC`,
     [dept]
   );
 
   return rows;
 }
 
+/* ========================================================================
+   14) GET LEAVE BALANCE
+======================================================================== */
 async function getLeaveBalance(dept) {
   const [rows] = await pool.query(
     `SELECT 
           u.user_id,
           u.name,
           u.designation,
-          lb.casual_total,
-          lb.casual_used,
-          lb.casual_total - lb.casual_used AS casual_remaining,
-          lb.rh_total,
-          lb.rh_used,
-          lb.rh_total - lb.rh_used AS rh_remaining,
-          lb.earned_total,
-          lb.earned_used,
-          lb.earned_total - lb.earned_used AS earned_remaining
+          COALESCE(lb.casual_total, 12) as casual_total,
+          COALESCE(lb.casual_used, 0) as casual_used,
+          COALESCE(lb.casual_total, 12) - COALESCE(lb.casual_used, 0) as casual_remaining,
+          COALESCE(lb.rh_total, 2) as rh_total,
+          COALESCE(lb.rh_used, 0) as rh_used,
+          COALESCE(lb.rh_total, 2) - COALESCE(lb.rh_used, 0) as rh_remaining,
+          COALESCE(lb.earned_total, 15) as earned_total,
+          COALESCE(lb.earned_used, 0) as earned_used,
+          COALESCE(lb.earned_total, 15) - COALESCE(lb.earned_used, 0) as earned_remaining
        FROM users u
        LEFT JOIN leave_balance lb ON u.user_id = lb.user_id AND lb.academic_year = YEAR(CURDATE())
        WHERE u.department_code = ?
-         AND u.role IN ('faculty', 'hod')
+         AND u.role IN ('faculty', 'hod', 'staff')
          AND u.is_active = 1
        ORDER BY u.name`,
     [dept]
@@ -385,26 +526,31 @@ async function getLeaveBalance(dept) {
 }
 
 /* ========================================================================
-   14) GET DEPARTMENTS
+   15) GET DEPARTMENTS
 ======================================================================== */
 async function getDepartments() {
   const [rows] = await pool.query(
-    `SELECT DISTINCT department_code
+    `SELECT DISTINCT department_code as code
      FROM users
-     WHERE role = 'faculty'`
+     WHERE role IN ('faculty', 'hod', 'staff')
+     ORDER BY department_code`
   );
 
-  return rows.map(r => r.department_code);
+  return rows;
 }
 
 /* ========================================================================
-   15) GET ALL INSTITUTION LEAVES
+   16) GET ALL INSTITUTION LEAVES
 ======================================================================== */
 async function getInstitutionLeaves(selectedDept = null) {
-  let query =
-    `SELECT lr.*, u.name AS requester_name, u.department_code
-     FROM leave_requests lr
-     JOIN users u ON lr.user_id = u.user_id`;
+  let query = `
+    SELECT lr.*, 
+           u.name AS requester_name, 
+           u.department_code,
+           (SELECT COUNT(*) FROM arrangements WHERE leave_id = lr.leave_id) as arrangement_count
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.user_id
+  `;
 
   const params = [];
 
@@ -417,6 +563,115 @@ async function getInstitutionLeaves(selectedDept = null) {
 
   const [rows] = await pool.query(query, params);
   return rows;
+}
+
+/* ========================================================================
+   17) GET STAFF BY DEPARTMENT
+======================================================================== */
+async function getStaffByDepartment(dept) {
+  const [rows] = await pool.query(
+    `SELECT user_id, name, designation, email
+     FROM users
+     WHERE department_code = ? 
+       AND role = 'staff'
+       AND is_active = 1
+     ORDER BY name`,
+    [dept]
+  );
+
+  return rows;
+}
+
+/* ========================================================================
+   18) GET FACULTY BY DEPARTMENT
+======================================================================== */
+async function getFacultyByDepartment(dept) {
+  const [rows] = await pool.query(
+    `SELECT user_id, name, designation, email
+     FROM users
+     WHERE department_code = ? 
+       AND role IN ('faculty', 'hod')
+       AND is_active = 1
+     ORDER BY name`,
+    [dept]
+  );
+
+  return rows;
+}
+
+/* ========================================================================
+   19) GET PRINCIPAL PENDING REQUESTS
+======================================================================== */
+async function getPendingPrincipalRequests() {
+  const [rows] = await pool.query(
+    `SELECT lr.*, u.name AS requester_name,
+            u.department_code as dept
+     FROM leave_requests lr
+     JOIN users u ON lr.user_id = u.user_id
+     WHERE lr.principal_status = 'pending'
+       AND lr.hod_status = 'approved'
+       AND lr.final_status = 'pending'
+     ORDER BY lr.applied_on DESC`
+  );
+
+  return rows;
+}
+
+/* ========================================================================
+   20) GET LEAVE STATISTICS
+======================================================================== */
+async function getLeaveStatistics(dept = null) {
+  let whereClause = "";
+  const params = [];
+
+  if (dept) {
+    whereClause = "WHERE u.department_code = ?";
+    params.push(dept);
+  }
+
+  const [rows] = await pool.query(`
+    SELECT 
+      COUNT(*) as total_leaves,
+      SUM(CASE WHEN final_status = 'approved' THEN 1 ELSE 0 END) as approved,
+      SUM(CASE WHEN final_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+      SUM(CASE WHEN final_status = 'pending' THEN 1 ELSE 0 END) as pending,
+      SUM(CASE WHEN leave_type = 'Casual Leave' THEN 1 ELSE 0 END) as casual,
+      SUM(CASE WHEN leave_type = 'Earned Leave' THEN 1 ELSE 0 END) as earned,
+      SUM(CASE WHEN leave_type = 'RH' THEN 1 ELSE 0 END) as rh,
+      SUM(CASE WHEN leave_type = 'Optional Holiday' THEN 1 ELSE 0 END) as optional
+    FROM leave_requests lr
+    JOIN users u ON lr.user_id = u.user_id
+    ${whereClause}
+  `, params);
+
+  return rows[0] || {};
+}
+
+/* ========================================================================
+   21) GET USER'S LEAVE BALANCE
+======================================================================== */
+async function getUserLeaveBalance(user_id) {
+  const [[row]] = await pool.query(
+    `SELECT 
+          COALESCE(lb.casual_total, 12) as casual_total,
+          COALESCE(lb.casual_used, 0) as casual_used,
+          COALESCE(lb.rh_total, 2) as rh_total,
+          COALESCE(lb.rh_used, 0) as rh_used,
+          COALESCE(lb.earned_total, 15) as earned_total,
+          COALESCE(lb.earned_used, 0) as earned_used
+     FROM leave_balance lb
+     WHERE lb.user_id = ? AND lb.academic_year = YEAR(CURDATE())`,
+    [user_id]
+  );
+
+  return row || {
+    casual_total: 12,
+    casual_used: 0,
+    rh_total: 2,
+    rh_used: 0,
+    earned_total: 15,
+    earned_used: 0
+  };
 }
 
 /* ========================================================================
@@ -438,5 +693,11 @@ module.exports = {
   getDepartmentLeaves,
   getDepartments,
   getPendingHodRequests,
-  getInstitutionLeaves
+  getInstitutionLeaves,
+  getStaffByDepartment,
+  getFacultyByDepartment,
+  getPendingPrincipalRequests,
+  getLeaveStatistics,
+  getUserLeaveBalance,
+  normalizeSession
 };

@@ -42,7 +42,8 @@ async function applyLeave(req, res, next) {
     const arrangements = rows
       .map((r) => {
         const substitute = (userRole === "staff") ? r.staff : r.faculty;
-        if (!substitute) return null;
+        // More strict check for empty values
+        if (!substitute || substitute === "" || substitute === "0") return null;
 
         return {
           substitute_id: substitute,
@@ -181,7 +182,7 @@ async function leaveHistory(req, res, next) {
     let department_leaves = [];
     if (role === "hod") {
       department_leaves = await pool.query(
-        `SELECT lr.*, u.name AS requester_name
+        `SELECT lr.*, u.name AS requester_name , u.department_code , u.designation
          FROM leave_requests lr
          JOIN users u ON lr.user_id = u.user_id
          WHERE u.department_code = ?
@@ -202,7 +203,7 @@ async function leaveHistory(req, res, next) {
       ).then(([rows]) => rows.map(r => r.department_code));
 
       institution_leaves = await pool.query(
-        `SELECT lr.*, u.name AS requester_name
+        `SELECT lr.*, u.name AS requester_name, u.department_code, u.designation
          FROM leave_requests lr
          JOIN users u ON lr.user_id = u.user_id
          ${selected_department ? "WHERE u.department_code = ?" : ""}
