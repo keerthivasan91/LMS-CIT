@@ -1,4 +1,5 @@
 require("dotenv").config();
+const pool = require('./config/db');
 const session = require("express-session");
 const express = require("express");
 const helmet = require("helmet");
@@ -109,7 +110,64 @@ setInterval(async () => {
 
 
 // Health check
-app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/health", async (req, res) => {
+  const healthcheck = {
+    uptime: process.uptime(), // Time the process has been running
+    message: "OK",            // Status message
+    timestamp: new Date().toISOString(), // ISO 8601 format for clarity
+    database: "checking...",
+    // Add other critical services here (e.g., mail, cache)
+    services: {} 
+  };
+
+  const TIMEOUT_MS = 3000; // Reduced timeout for faster failure detection (was 5000)
+
+  try {
+    // 1. Database Connection Test
+    const dbTest = pool.query("SELECT 1 + 1 AS result");
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("DB timeout")), TIMEOUT_MS);
+    });
+
+    await Promise.race([dbTest, timeout]);
+    healthcheck.database = "connected";
+
+    // 2. Add other service checks here (e.g., Redis, external APIs)
+    // healthcheck.services.redis = await checkRedisConnection(); 
+    
+    // 3. Security enhancement: Limit response data to essential fields
+    res.status(200).json({ 
+        status: 200, 
+        message: healthcheck.message, 
+        database: healthcheck.database,
+        services: healthcheck.services 
+    });
+
+  } catch (error) {
+    // Log the detailed error, but don't expose it all publicly
+    console.error("Health Check Failure:", error.message); 
+    
+    // Update the health check status
+    healthcheck.message = "Service Unavailable";
+    
+    // If the error was a DB timeout, set the DB status explicitly
+    if (error.message.includes("DB timeout")) {
+      healthcheck.database = `error: ${error.message}`;
+    } else {
+      // General error catch
+      healthcheck.database = `error: connection failed`;
+    }
+
+    // Return status 503 (Service Unavailable)
+    res.status(503).json({
+      status: 503,
+      message: healthcheck.message,
+      database: healthcheck.database,
+      timestamp: healthcheck.timestamp,
+      // NOTE: We generally hide `uptime` for security when 503
+    });
+  }
+});
 
 app.use(errorHandler);
 
