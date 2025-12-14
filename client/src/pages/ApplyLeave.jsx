@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
-import {useSnackbar} from "../context/SnackbarContext";
+import { useSnackbar } from "../context/snackbarContext";
 import LeaveForm from "../components/LeaveForm";
 import "../App.css";
 
@@ -23,21 +23,25 @@ const ApplyLeave = () => {
     // row 1
     arr1_dept: "",
     arr1_faculty: "",
+    arr1_staff: "",
     arr1_details: "",
 
     // row 2
     arr2_dept: "",
     arr2_faculty: "",
+    arr2_staff: "",
     arr2_details: "",
 
     // row 3
     arr3_dept: "",
     arr3_faculty: "",
+    arr3_staff: "",
     arr3_details: "",
 
     // row 4
     arr4_dept: "",
     arr4_faculty: "",
+    arr4_staff: "",
     arr4_details: ""
   });
 
@@ -128,13 +132,44 @@ const ApplyLeave = () => {
   const submitForm = async (e) => {
     e.preventDefault();
 
-    const payload = { ...form };
+    // Build the exact payload that backend expects
+    const payload = {
+      leave_type: form.leave_type,
+      start_date: form.start_date,
+      start_session: form.start_session,
+      end_date: form.end_date,
+      end_session: form.end_session,
+      reason: form.reason,
+      
+      // Individual arrangement fields (what backend expects)
+      arr1_dept: form.arr1_dept,
+      arr1_faculty: user?.role === "staff" ? "" : form.arr1_faculty,
+      arr1_staff: user?.role === "staff" ? form.arr1_staff : "",
+      arr1_details: form.arr1_details,
+
+      arr2_dept: form.arr2_dept,
+      arr2_faculty: user?.role === "staff" ? "" : form.arr2_faculty,
+      arr2_staff: user?.role === "staff" ? form.arr2_staff : "",
+      arr2_details: form.arr2_details,
+
+      arr3_dept: form.arr3_dept,
+      arr3_faculty: user?.role === "staff" ? "" : form.arr3_faculty,
+      arr3_staff: user?.role === "staff" ? form.arr3_staff : "",
+      arr3_details: form.arr3_details,
+
+      arr4_dept: form.arr4_dept,
+      arr4_faculty: user?.role === "staff" ? "" : form.arr4_faculty,
+      arr4_staff: user?.role === "staff" ? form.arr4_staff : "",
+      arr4_details: form.arr4_details
+    };
+
+    console.log("Sending payload to /apply:", payload);
 
     try {
-      await axios.post("/apply", payload);
+      const response = await axios.post("/apply", payload);
       showSnackbar("Leave applied successfully!", "success");
 
-      // Reset again
+      // Reset form
       setForm({
         leave_type: "Casual Leave",
         start_date: "",
@@ -145,18 +180,22 @@ const ApplyLeave = () => {
 
         arr1_dept: "",
         arr1_faculty: "",
+        arr1_staff: "",
         arr1_details: "",
 
         arr2_dept: "",
         arr2_faculty: "",
+        arr2_staff: "",
         arr2_details: "",
 
         arr3_dept: "",
         arr3_faculty: "",
+        arr3_staff: "",
         arr3_details: "",
 
         arr4_dept: "",
         arr4_faculty: "",
+        arr4_staff: "",
         arr4_details: ""
       });
 
@@ -167,7 +206,12 @@ const ApplyLeave = () => {
 
     } catch (err) {
       console.error("ERROR submitting leave:", err);
-      showSnackbar("Error submitting leave", "error");
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        showSnackbar(err.response.data.message || "Error submitting leave", "error");
+      } else {
+        showSnackbar("Error submitting leave", "error");
+      }
     }
   };
 
@@ -188,7 +232,7 @@ const ApplyLeave = () => {
           form={form}
           onChange={handleChange}
           onSubmit={submitForm}
-          role={user.role}
+          role={user?.role}
           departments={departments}
           staffList={staffList}
 

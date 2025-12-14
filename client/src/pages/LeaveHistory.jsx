@@ -27,8 +27,7 @@ const LeaveHistory = () => {
   const loadAll = async (dept = "") => {
     try {
       const res = await axios.get(
-        `/leave_history${dept ? `?department=${dept}` : ""}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/leave_history${dept ? `?department=${dept}` : ""}`
       );
 
       /* ---------------------- Applied Leaves ---------------------- */
@@ -41,8 +40,7 @@ const LeaveHistory = () => {
           end_date: l.end_date,
           end_session: prettySession(l.end_session),
           days: l.days,
-          substitute: l.substitute_name,
-          sub_status: l.substitute_status,
+          sub_status: l.final_substitute_status,
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
@@ -56,11 +54,7 @@ const LeaveHistory = () => {
         list.map((r) => ({
           id: r.leave_id,
           requester: r.requester_name,
-          type: r.leave_type,
-          start_date: r.start_date,
-          end_date: r.end_date,
           days: r.days,
-          reason: r.reason,
           arrangement_details: r.arrangement_details || null,
           status: r.substitute_status
         }));
@@ -70,6 +64,7 @@ const LeaveHistory = () => {
         list.map((l) => ({
           id: l.leave_id,
           requester: l.requester_name,
+          designation: l.designation,
           type: l.leave_type,
           start_date: l.start_date,
           start_session: prettySession(l.start_session),
@@ -77,7 +72,7 @@ const LeaveHistory = () => {
           end_session: prettySession(l.end_session),
           days: l.days,
           substitute: l.substitute_name,
-          sub_status: l.substitute_status,
+          sub_status: l.final_substitute_status,
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
@@ -89,9 +84,10 @@ const LeaveHistory = () => {
       /* ---------------------- Institution Leaves ---------------------- */
       const mapInstitution = (list) =>
         list.map((l) => ({
-          id: l.leave_id,
+          id: l.user_id,
           requester: l.requester_name,
           department: l.department_code,
+          designation: l.designation,
           type: l.leave_type,
           start_date: l.start_date,
           start_session: prettySession(l.start_session),
@@ -99,7 +95,7 @@ const LeaveHistory = () => {
           end_session: prettySession(l.end_session),
           days: l.days,
           substitute: l.substitute_name,
-          sub_status: l.substitute_status,
+          sub_status: l.final_substitute_status,
           hod_status: l.hod_status,
           principal_status: l.principal_status,
           final_status: l.final_status,
@@ -211,9 +207,7 @@ const LeaveHistory = () => {
             <table className="history-table">
               <thead>
                 <tr>
-                  <th>ID</th><th>Requester</th><th>Type</th>
-                  <th>Start</th><th>End</th>
-                  <th>Days</th><th>Reason</th>
+                  <th>ID</th><th>Requester</th>
                   <th>Arrangement Details</th><th>Status</th>
                 </tr>
               </thead>
@@ -223,11 +217,6 @@ const LeaveHistory = () => {
                   <tr key={r.id}>
                     <td>{r.id}</td>
                     <td>{r.requester}</td>
-                    <td>{r.type}</td>
-                    <td>{formatDate(r.start_date)}</td>
-                    <td>{formatDate(r.end_date)}</td>
-                    <td>{r.days}</td>
-                    <td>{r.reason}</td>
                     <td>{r.arrangement_details || "—"}</td>
                     <td>{r.status}</td>
                   </tr>
@@ -252,10 +241,11 @@ const LeaveHistory = () => {
               <table className="history-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>Requester</th><th>Type</th>
+                    <th>ID</th><th>Requester</th>
+                    <th>Designation</th><th>Type</th>
                     <th>Start</th><th>Session</th>
                     <th>End</th><th>Session</th>
-                    <th>Days</th><th>Substitute</th>
+                    <th>Days</th>
                     <th>Sub Status</th><th>HOD</th>
                     <th>Principal</th><th>Final</th>
                     <th>Reason</th>
@@ -268,6 +258,7 @@ const LeaveHistory = () => {
                     <tr key={l.id}>
                       <td>{l.id}</td>
                       <td>{l.requester}</td>
+                      <td>{l.designation}</td>
                       <td>{l.type}</td>
 
                       <td>{formatDate(l.start_date)}</td>
@@ -277,7 +268,6 @@ const LeaveHistory = () => {
                       <td>{l.end_session}</td>
 
                       <td>{l.days}</td>
-                      <td>{l.substitute || "None"}</td>
 
                       <td>{l.sub_status}</td>
                       <td>{l.hod_status}</td>
@@ -326,7 +316,7 @@ const LeaveHistory = () => {
               <table className="history-table" style={{ minWidth: 1000 }}>
                 <thead>
                   <tr>
-                    <th>ID</th><th>Requester</th><th>Department</th><th>Type</th>
+                    <th>ID</th><th>Requester</th><th>Department</th><th>Designation</th><th>Type</th>
                     <th>Start</th><th>Session</th>
                     <th>End</th><th>Session</th>
                     <th>Days</th>
@@ -341,6 +331,7 @@ const LeaveHistory = () => {
                       <td>{l.id}</td>
                       <td>{l.requester}</td>
                       <td>{l.department}</td>
+                      <td>{l.designation}</td>
                       <td>{l.type}</td>
 
                       <td>{formatDate(l.start_date)}</td>
