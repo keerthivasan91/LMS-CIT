@@ -641,12 +641,12 @@ body {
 
 .approve-btn {
   background: var(--success);
-  color: white;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.25);
 }
 
 .reject-btn {
   background: var(--danger);
-  color: white;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.25);
 }
 
 .action-btn:hover {
