@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "../api/axiosConfig";
-import { useSnackbar } from "../context/snackbarContext";
+import { useSnackbar } from "../context/SnackbarContext";
 
 const AdminAddUser = () => {
   const [departments, setDepartments] = useState([]);
