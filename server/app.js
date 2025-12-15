@@ -45,8 +45,17 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://lms-cit-production-cb35.up.railway.app','https://lms-cit-production.up.railway.app','https://lms-cit.duckdns.org']
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  ? [
+      'https://lms-cit.duckdns.org',
+      'https://d31bsugjsi7j8z.cloudfront.net',
+      'https://lms-cit-production-cb35.up.railway.app',
+      'https://lms-cit-production.up.railway.app'
+    ]
+  : [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000'
+    ];
+
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -58,8 +67,11 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization','X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
 }));
+
+app.options('*', cors()); // enable pre-flight for all routes
 
 app.use(
   session({
