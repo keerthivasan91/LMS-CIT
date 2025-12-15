@@ -33,7 +33,7 @@ async function login(req, res, next) {
     }
 
     // Prevent session fixation
-    req.session.regenerate(async (err) => {
+    req.session.regenerate((err) => {
       if (err) return next(err);
 
       req.session.user = {
@@ -45,14 +45,22 @@ async function login(req, res, next) {
         department_code: user.department_code,
       };
 
-      await UserModel.updateLastLogin(user.user_id);
+      UserModel.updateLastLogin(user.user_id).catch(console.error);
 
-      return res.json({
-        ok: true,
-        message: "Login successful",
-        user: req.session.user,
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+
+        return res.json({
+          ok: true,
+          message: "Login successful",
+          user: req.session.user,
+        });
       });
     });
+
 
   } catch (err) {
     next(err);
