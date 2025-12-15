@@ -45,7 +45,7 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? ['https://lms-cit-production-cb35.up.railway.app','https://lms-cit-production.up.railway.app']
+  ? ['https://lms-cit-production-cb35.up.railway.app','https://lms-cit-production.up.railway.app','https://lms-cit.duckdns.org']
   : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
 app.use(cors({
