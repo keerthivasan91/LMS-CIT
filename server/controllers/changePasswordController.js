@@ -1,11 +1,14 @@
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
+const sendMail = require("../config/mailer");
+const LeaveModel = require("../models/User");
 
 async function changePassword(req, res, next) {
   try {
     const user_id = req.user.user_id;
 
     const old_password = req.body.current_password;  // FIXED
+    const applicant = await LeaveModel.getUserById(user_id);
     const { new_password } = req.body;
 
     if (!old_password || !new_password) {
@@ -31,6 +34,15 @@ async function changePassword(req, res, next) {
     await pool.query(
       "UPDATE users SET password = ?, updated_at = NOW() WHERE user_id = ?",
       [hashed, user_id]
+    );
+
+    await sendMail(
+      applicant.email,
+      "LMS: Password Changed",
+      `
+        <h3>Password Changed Successfully</h3>
+        <p>Your password has been changed. If you did not perform this action, please contact support immediately.</p>
+      `
     );
 
     return res.json({ ok: true, message: "Password changed successfully" });
