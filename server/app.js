@@ -71,7 +71,7 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-app.options('*', cors()); // enable pre-flight for all routes
+app.options(/.*/, cors()); // enable pre-flight for all routes
 
 app.use(
   session({
