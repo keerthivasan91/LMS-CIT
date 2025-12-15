@@ -57,7 +57,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
     ];
 
 
-app.use(cors({
+corsOptions ={
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -69,9 +69,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization','X-Requested-With'],
   exposedHeaders: ['Set-Cookie']
-}));
+};
 
-app.options(/.*/, cors()); // enable pre-flight for all routes
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions)); // enable pre-flight for all routes
 
 app.use(
   session({
@@ -92,13 +93,11 @@ app.use(
 
 app.use(morgan("combined"));
 
-app.use(rateLimit);
 
 
 // API routes
 app.use("/api", changePasswordRoutes);
 app.use("/api", forgotPasswordRoutes);
-app.use("/api",apiLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api", branchRoutes);
 app.use("/api", leaveRoutes);
