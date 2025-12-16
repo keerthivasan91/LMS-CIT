@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
-import { isAdmin } from "../utils/roles";
+import { isPrincipal } from "../utils/roles";
 import { formatDate } from "../utils/dateFormatter";
 import "../App.css";
 
@@ -10,7 +10,7 @@ const PrincipalApprovals = () => {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    if (!isAdmin(user)) {
+    if (!isPrincipal(user)) {
       window.location.href = "/dashboard";
       return;
     }
