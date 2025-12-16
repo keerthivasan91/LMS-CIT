@@ -36,7 +36,7 @@ INSERT INTO departments (department_code, department_name, is_active) VALUES
 INSERT INTO users (user_id, name, email, password, role, department_code, phone, designation, date_joined) VALUES
 ('PRINC001', 'Dr. Kavitha Rao', 'principal@cit.edu', '$2a$12$Cm12sTvXRqx895yHOIGl0OMAmMNlcySNehad3ubKB0EGLaF0e7hJu', 'principal', 'MGMT', '9876543210', 'Principal', '2015-06-10'),
 ('ADMIN01', 'Ravi Shankar', 'admin@cit.edu', '$2a$12$Cm12sTvXRqx895yHOIGl0OMAmMNlcySNehad3ubKB0EGLaF0e7hJu', 'admin', 'MGMT', '9123456780', 'System Administrator', '2018-03-18'),
-('ADMIN02', 'Priya Sharma', 'it.admin@cit.edu', '$2a$12$Cm12sTvXRqx895yHOIGl0OMAmMNlcySNehad3ubKB0EGLaF0e7hJu', 'admin', 'MGMT', '9123456781', 'IT Administrator', '2019-07-22')
+('ADMIN02', 'Priya Sharma', 'it.admin@cit.edu', '$2a$12$Cm12sTvXRqx895yHOIGl0OMAmMNlcySNehad3ubKB0EGLaF0e7hJu', 'admin', 'MGMT', '9123456781', 'IT Administrator', '2019-07-22'),
 
 -- HODs (Department Heads)
 ('HODCSE01', 'Prof. Suresh M', 'hod.cse@cit.edu', '$2a$12$Cm12sTvXRqx895yHOIGl0OMAmMNlcySNehad3ubKB0EGLaF0e7hJu', 'hod', 'CSE', '9876501234', 'Head of Department - CSE', '2017-02-15'),
