@@ -89,7 +89,7 @@ const App = () => {
           <Route
             path="substitute-requests"
             element={
-              <ProtectedRoute allowed={["faculty", "hod"]}>
+              <ProtectedRoute allowed={["faculty", "hod","admin","staff"]}>
                 <SubstituteRequests />
               </ProtectedRoute>
             }
@@ -127,7 +127,7 @@ const App = () => {
           <Route
             path="principal-approvals"
             element={
-              <ProtectedRoute allowed={["admin"]}>
+              <ProtectedRoute allowed={["principal"]}>
                 <PrincipalApprovals />
               </ProtectedRoute>
             }
