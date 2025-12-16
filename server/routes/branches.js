@@ -23,7 +23,7 @@ router.get('/departments', sessionAuth(["admin", "principal"]), getAllBranches);
 // 2) Get STAFF Only by Department
 //    Used by staff applying for leave
 // ------------------------------------------------------------
-router.get('/staff/:branch', sessionAuth(["staff"]), getStaffByBranch);
+router.get('/staff/:branch', sessionAuth(["staff","admin"]), getStaffByBranch);
 
 
 // ------------------------------------------------------------
