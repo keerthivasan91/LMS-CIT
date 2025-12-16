@@ -4,7 +4,7 @@ const AdminModel = require("../models/Admin");
 
 async function adminDeleteUser(req, res, next) {
   try {
-    if (!["admin", "principal"].includes(req.user.role)) {
+    if (!["admin"].includes(req.user.role)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
