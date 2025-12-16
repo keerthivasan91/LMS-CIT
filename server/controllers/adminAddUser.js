@@ -4,7 +4,7 @@ const UserModel = require("../models/User");
 
 async function adminAddUser(req, res, next) {
   try {
-    if (!req.user || !["admin", "principal"].includes(req.user.role)) {
+    if (!req.user || !["admin"].includes(req.user.role)) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
