@@ -1,7 +1,7 @@
 import React, { useContext, useMemo, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-import { isHOD, isAdmin, isFaculty } from "../utils/roles";
+import { isHOD, isAdmin,isStaff, isFaculty,isPrincipal } from "../utils/roles";
 
 const Sidebar = ({
   pendingSubs = 0,
@@ -18,7 +18,9 @@ const Sidebar = ({
   const roleInfo = useMemo(() => ({
     isAdmin: isAdmin(user),
     isHod: isHOD(user),
-    isFaculty: isFaculty(user)
+    isFaculty: isFaculty(user),
+    isStaff: isStaff(user),
+    isPrincipal: isPrincipal(user)
   }), [user]);
 
   // Close sidebar on Escape key
@@ -65,7 +67,7 @@ const Sidebar = ({
           </NavLink>
         </li>
 
-        {!roleInfo.isAdmin && (
+        {!roleInfo.isPrincipal && (
           <li>
             <NavLink to="/apply">Apply For Leave</NavLink>
           </li>
@@ -75,7 +77,7 @@ const Sidebar = ({
           <NavLink to="/leave-history">Leave History</NavLink>
         </li>
 
-        {roleInfo.isFaculty && !roleInfo.isAdmin && (
+        {!roleInfo.isPrincipal && (
           <li>
             <NavLink to="/substitute-requests">
               Substitute Requests
@@ -104,7 +106,7 @@ const Sidebar = ({
           </>
         )}
 
-        {roleInfo.isAdmin && (
+        {roleInfo.isPrincipal && (
           <>
             <li>
               <NavLink to="/principal-approvals">
@@ -114,7 +116,11 @@ const Sidebar = ({
                 )}
               </NavLink>
             </li>
+          </>
+        )}
 
+        {roleInfo.isAdmin && (
+          <>
             <li><NavLink to="/admin/add-user">Add User</NavLink></li>
             <li><NavLink to="/admin/delete-user">Delete User</NavLink></li>
             <li><NavLink to="/admin/reset-requests">Password Reset Requests</NavLink></li>
