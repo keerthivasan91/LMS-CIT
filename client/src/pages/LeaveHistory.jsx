@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "../api/axiosConfig";
 import AuthContext from "../context/AuthContext";
-import { isHOD, isAdmin, isFaculty } from "../utils/roles";
+import { isHOD, isAdmin, isFaculty, isPrincipal, isStaff } from "../utils/roles";
 import { formatDate } from "../utils/dateFormatter";
 import "../App.css";
 
@@ -138,7 +138,7 @@ const LeaveHistory = () => {
       {/* ===========================================================
           USER APPLIED LEAVES
       =========================================================== */}
-      {user && user.role !== "admin" && (
+      {user && user.role !== "principal" && (
         <>
           <h3 style={{ marginTop: 30, color: "#667eea" }}>
             Leaves You Applied
@@ -197,7 +197,7 @@ const LeaveHistory = () => {
       {/* ===========================================================
           SUBSTITUTE REQUESTS
       =========================================================== */}
-      {isFaculty(user) && substituteRequests.length > 0 && (
+      {(isFaculty(user) || isStaff(user) || isAdmin(user)) && substituteRequests.length > 0 && (
         <>
           <h3 style={{ marginTop: 40, color: "#28a745" }}>
             Substitute Requests Assigned to You
@@ -291,7 +291,7 @@ const LeaveHistory = () => {
       {/* ===========================================================
           ADMIN / PRINCIPAL – INSTITUTION LEAVES
       =========================================================== */}
-      {isAdmin(user) && (
+      {(isAdmin(user) || isPrincipal(user)) && (
         <>
           <h3 style={{ marginTop: 40, color: "#6f42c1" }}>
             Institution Leave History
