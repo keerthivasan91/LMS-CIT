@@ -64,7 +64,7 @@ async function getStaffByBranch(req, res, next) {
       `SELECT user_id, name
        FROM users
        WHERE department_code = ?
-         AND role = 'staff'
+         AND (role = 'staff' OR role = 'admin')
          AND is_active = 1
        ORDER BY name`,
       [branch]
