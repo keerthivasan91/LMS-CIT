@@ -1330,3 +1330,20 @@ body {
   gap: 5px;
   flex-wrap: nowrap;
 }
+
+/* FIX: Hide login image on mobile + desktop-view-on-mobile */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .left-section {
+    display: none !important;
+  }
+
+  .right-section {
+    width: 100%;
+    flex: 1;
+    padding: 20px;
+  }
+}
