@@ -108,9 +108,9 @@ const LeaveForm = ({
         <div className="arr-row header">
           <div className="arr-col">#</div>
 
-          {role === "staff" ? (
+          {(role === "staff" || role === "admin") ? (
             <div className="arr-col">Substitute Staff</div>
-          ) : role !== "admin" ? (
+          ) : role !== "principal" ? (
             <>
               <div className="arr-col">Department</div>
               <div className="arr-col">Substitute Faculty</div>
@@ -134,7 +134,7 @@ const LeaveForm = ({
               <div className="arr-col">{i}</div>
 
               {/* STAFF MODE */}
-              {role === "staff" && (
+              {(role === "staff" || role === "admin") && (
                 <div className="arr-col">
                   <select
                     name={`arr${i}_staff`}
