@@ -101,7 +101,7 @@ const ApplyLeave = () => {
      LOAD STAFF FOR STAFF USERS ONLY
   ------------------------------------------------------------ */
   const loadStaffForStaffUser = async () => {
-    if (user?.role !== "staff") return;
+    if (user?.role !== "staff" && user?.role !== "admin") return;
 
     try {
       const branch = user.department_code.toLowerCase();

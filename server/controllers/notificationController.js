@@ -21,7 +21,7 @@ async function notificationCounters(req, res) {
        1) SUBSTITUTE PENDING REQUESTS 
           (faculty + staff + hod both get arrangement requests)
     ============================================================ */
-    if (role === "faculty" || role === "staff" || role==="hod") {
+    if (role === "faculty" || role === "staff" || role==="hod" || role==="admin") {
       const [rows] = await pool.query(
         `SELECT COUNT(*) AS count
          FROM arrangements
@@ -58,7 +58,7 @@ async function notificationCounters(req, res) {
           - hod_status = 'approved'
           - principal_status = 'pending'
     ============================================================ */
-    if (role === "principal" || role === "admin") {
+    if (role === "principal") {
       const [rows] = await pool.query(
         `SELECT COUNT(*) AS count
          FROM leave_requests

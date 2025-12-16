@@ -41,9 +41,16 @@ async function applyLeave(req, res, next) {
 
     const arrangements = rows
       .map((r) => {
-        const substitute = (userRole === "staff") ? r.staff : r.faculty;
-        // More strict check for empty values
-        if (!substitute || substitute === "" || substitute === "0") return null;
+        let substitute = null;
+
+        if (userRole === "faculty" || userRole === "hod") {
+          substitute = r.faculty;
+        } else if (userRole === "staff") {
+          substitute = r.staff;
+        } else if (userRole === "admin") {
+          substitute = r.staff || r.faculty; // staff OR admin
+        }
+
 
         return {
           substitute_id: substitute,

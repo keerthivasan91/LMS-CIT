@@ -43,18 +43,19 @@ async function insertLeaveRequest(conn, data) {
       principal_status = "pending";
     } else if (userRole === "faculty" || userRole === "staff") {
       hod_status = "pending";           // Faculty/Staff applies → goes to HOD
-    } else if (userRole === "principal") {
-      hod_status = "approved";          // Principal applies → skip to principal
+    } else if (userRole === "admin") {
+      hod_status = "pending";          // Principal applies → skip to principal
       principal_status = "pending";
     }
   } else {
     // Has substitutes
+    final_substitute_status = "pending";
     if (userRole === "hod") {
       hod_status = null;  // Wait for substitutes first
     } else if (userRole === "faculty" || userRole === "staff") {
       hod_status = null;  // Wait for substitutes first
-    } else if (userRole === "principal") {
-      hod_status = "approved";  // Principal gets auto HOD approval
+    } else if (userRole === "admin") {
+      hod_status = null;  // Wait for substitutes first
       principal_status = null;  // Still need substitutes
     }
   }
@@ -573,7 +574,7 @@ async function getStaffByDepartment(dept) {
     `SELECT user_id, name, designation, email
      FROM users
      WHERE department_code = ? 
-       AND role = 'staff'
+       AND (role = 'staff' OR role = 'admin')
        AND is_active = 1
      ORDER BY name`,
     [dept]
