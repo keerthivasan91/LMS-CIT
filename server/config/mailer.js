@@ -19,8 +19,10 @@ const transporter = nodemailer.createTransport({
 transporter.verify((error) => {
   if (error) {
     console.error("❌ Email server connection failed:", error.message);
+    logger.error(`Mail service health check failed: ${error.message}`);
   } else {
     console.log("📨 Email server is ready (SMTP verification successful)");
+    logger.info("Mail service is ready (SMTP verification successful)");
   }
 });
 
