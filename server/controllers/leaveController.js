@@ -1,19 +1,21 @@
-// controllers/leaveController.js
 const pool = require("../config/db");
 const sendMail = require("../config/mailer");
 const LeaveModel = require("../models/Leave");
 
 /* ============================================================
-   APPLY LEAVE  (MULTI SUBSTITUTE)
+   APPLY LEAVE
+   RULE:
+   - Substitute approval required IF substitutes exist
+   - Auto-accept ONLY when no substitutes
+   - Admin behaves like staff in workflow
 ============================================================ */
 async function applyLeave(req, res, next) {
+  console.log("REQ BODY:", req.body);
+
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    const user_id = req.user.user_id;
-    const department_code = req.user.department_code;
-    const userEmail = req.user.email;
-    const userRole = req.user.role;
+    const { user_id, department_code, email: userEmail, role: userRole } = req.user;
 
     const {
       leave_type = "Casual Leave",
@@ -29,9 +31,9 @@ async function applyLeave(req, res, next) {
       arr4_dept, arr4_faculty, arr4_staff, arr4_details
     } = req.body;
 
-    // -----------------------------
-    // Build arrangement list
-    // -----------------------------
+    /* -----------------------------
+       Build arrangements
+    ----------------------------- */
     const rows = [
       { dept: arr1_dept, faculty: arr1_faculty, staff: arr1_staff, details: arr1_details },
       { dept: arr2_dept, faculty: arr2_faculty, staff: arr2_staff, details: arr2_details },
@@ -40,20 +42,22 @@ async function applyLeave(req, res, next) {
     ];
 
     const arrangements = rows
-      .map((r) => {
+      .map(r => {
         let substitute = null;
 
+        // Faculty/HOD → faculty substitutes
         if (userRole === "faculty" || userRole === "hod") {
           substitute = r.faculty;
-        } else if (userRole === "staff") {
-          substitute = r.staff;
-        } else if (userRole === "admin") {
-          substitute = r.staff || r.faculty; // staff OR admin
+        }
+        // Staff/Admin → staff substitutes
+        else if (userRole === "staff" || userRole === "admin") {
+          substitute = r.staff || r.faculty; // staff can pick faculty if needed
         }
 
+        if (!substitute || substitute.trim() === "") return null;
 
         return {
-          substitute_id: substitute,
+          substitute_id: substitute, // users.user_id
           department_code: r.dept || null,
           details: r.details || null
         };
@@ -61,17 +65,20 @@ async function applyLeave(req, res, next) {
       .filter(Boolean);
 
     const hasSubstitutes = arrangements.length > 0;
+    console.log("ARRANGEMENTS:", arrangements);
+console.log("hasSubstitutes:", hasSubstitutes);
 
-    // -----------------------------
-    // DB Transaction
-    // -----------------------------
+
+    /* -----------------------------
+       DB TRANSACTION
+    ----------------------------- */
     const conn = await pool.getConnection();
-    await conn.beginTransaction();
+    const mailQueue = [];
 
     try {
-      // -----------------------------
-      // Insert main leave request
-      // -----------------------------
+      await conn.beginTransaction();
+
+      // Insert leave request
       const leave_id = await LeaveModel.insertLeaveRequest(conn, {
         user_id,
         department_code,
@@ -81,13 +88,11 @@ async function applyLeave(req, res, next) {
         end_date,
         end_session,
         reason,
-        hasSubstitutes,
+        hasSubstitutes, // 🔑 ONLY THIS decides auto-accept
         userRole
       });
 
-      // -----------------------------
-      // Insert arrangement rows
-      // -----------------------------
+      // Insert arrangements (no mail here)
       for (const arr of arrangements) {
         await LeaveModel.insertArrangement(
           conn,
@@ -97,25 +102,31 @@ async function applyLeave(req, res, next) {
           arr.department_code
         );
 
-        // Email each substitute
         const sub = await LeaveModel.getSubstituteDetails(arr.substitute_id);
-
         if (sub?.email) {
-          sendMail(
-            sub.email,
-            "Substitute Request Assigned",
-            `<p>You have been requested to substitute from <b>${start_date}</b> to <b>${end_date}</b>.</p>
-             <p><b>Leave ID:</b> ${leave_id}</p>
-             <p><b>Details:</b> ${arr.details || "No details provided"}</p>
-             <p>Please accept or reject this request in the FLMS portal.</p>`
-          );
+          mailQueue.push({
+            to: sub.email,
+            subject: "Substitute Request Assigned",
+            body: `
+              <p>You have been requested to substitute from <b>${start_date}</b> to <b>${end_date}</b>.</p>
+              <p><b>Leave ID:</b> ${leave_id}</p>
+              <p><b>Details:</b> ${arr.details || "No details provided"}</p>
+              <p>Please accept or reject this request in the FLMS portal.</p>
+            `
+          });
         }
       }
 
-      // Commit DB changes
+      // ✅ Commit first
       await conn.commit();
 
-      // Send applicant email
+      /* -----------------------------
+         SEND MAILS AFTER COMMIT
+      ----------------------------- */
+      for (const mail of mailQueue) {
+        sendMail(mail.to, mail.subject, mail.body);
+      }
+
       sendMail(
         userEmail,
         "Leave Request Submitted",
@@ -136,9 +147,8 @@ async function applyLeave(req, res, next) {
   }
 }
 
-
 /* ============================================================
-   LEAVE HISTORY (UPDATED FOR NEW SCHEMA)
+   LEAVE HISTORY
 ============================================================ */
 async function leaveHistory(req, res, next) {
   try {
@@ -147,76 +157,64 @@ async function leaveHistory(req, res, next) {
     const { role, user_id, department_code } = req.user;
     const selected_department = req.query.department || null;
 
-    /* ============================================================
-       1. APPLIED LEAVES  → leaves applied by this user
-    ============================================================ */
-    const applied_leaves = await pool.query(
+    // Applied leaves
+    const [applied_leaves] = await pool.query(
       `SELECT lr.*, u.name AS requester_name
        FROM leave_requests lr
        JOIN users u ON lr.user_id = u.user_id
        WHERE lr.user_id = ?
        ORDER BY lr.applied_on DESC`,
       [user_id]
-    ).then(([rows]) => rows);
+    );
 
-    /* ============================================================
-       2. SUBSTITUTE REQUESTS → from ARRANGEMENTS table
-    ============================================================ */
-    const substitute_requests = await pool.query(
-      `SELECT 
-          a.arrangement_id,
-          a.leave_id,
-          a.status AS substitute_status,
-          a.details AS arrangement_details,
-          a.responded_on,
-          lr.start_date, lr.end_date,
-          lr.start_session, lr.end_session,
-          lr.reason, lr.leave_type,
-          u.name AS requester_name,
-          u.email AS requester_email,
-          u.phone AS requester_phone
+    // Substitute requests
+    const [substitute_requests] = await pool.query(
+      `SELECT a.arrangement_id, a.leave_id, a.status AS substitute_status,
+              a.details AS arrangement_details, a.responded_on,
+              lr.start_date, lr.end_date, lr.start_session, lr.end_session,
+              lr.reason, lr.leave_type,
+              u.name AS requester_name, u.email AS requester_email, u.phone AS requester_phone
        FROM arrangements a
        JOIN leave_requests lr ON a.leave_id = lr.leave_id
        JOIN users u ON lr.user_id = u.user_id
        WHERE a.substitute_id = ?
        ORDER BY a.arrangement_id DESC`,
       [user_id]
-    ).then(([rows]) => rows);
+    );
 
-    /* ============================================================
-       3. DEPARTMENT LEAVES (HOD only)
-    ============================================================ */
+    // Department leaves (HOD)
     let department_leaves = [];
     if (role === "hod") {
-      department_leaves = await pool.query(
-        `SELECT lr.*, u.name AS requester_name , u.department_code , u.designation
+      const [rows] = await pool.query(
+        `SELECT lr.*, u.name AS requester_name, u.department_code, u.designation
          FROM leave_requests lr
          JOIN users u ON lr.user_id = u.user_id
          WHERE u.department_code = ?
          ORDER BY lr.applied_on DESC`,
         [department_code]
-      ).then(([rows]) => rows);
+      );
+      department_leaves = rows;
     }
 
-    /* ============================================================
-       4. INSTITUTION LEAVES (ADMIN/PRINCIPAL)
-    ============================================================ */
+    // Institution leaves (Admin / Principal)
     let institution_leaves = [];
     let departments = [];
 
     if (role === "admin" || role === "principal") {
-      departments = await pool.query(
+      const [deptRows] = await pool.query(
         `SELECT DISTINCT department_code FROM users`
-      ).then(([rows]) => rows.map(r => r.department_code));
+      );
+      departments = deptRows.map(d => d.department_code);
 
-      institution_leaves = await pool.query(
+      const [rows] = await pool.query(
         `SELECT lr.*, u.name AS requester_name, u.department_code, u.designation
          FROM leave_requests lr
          JOIN users u ON lr.user_id = u.user_id
          ${selected_department ? "WHERE u.department_code = ?" : ""}
          ORDER BY lr.applied_on DESC`,
         selected_department ? [selected_department] : []
-      ).then(([rows]) => rows);
+      );
+      institution_leaves = rows;
     }
 
     res.json({
@@ -232,7 +230,6 @@ async function leaveHistory(req, res, next) {
     next(err);
   }
 }
-
 
 module.exports = {
   applyLeave,
