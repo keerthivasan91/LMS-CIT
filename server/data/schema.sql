@@ -17,7 +17,7 @@ CREATE TABLE users (
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('student', 'faculty', 'hod', 'principal', 'admin', 'staff') NOT NULL,
-  department_code VARCHAR(20) NULL,
+  department_code VARCHAR(20) NOT NULL,
   phone VARCHAR(20),
   designation VARCHAR(100),
   date_joined DATE,
@@ -75,8 +75,8 @@ CREATE TABLE leave_requests (
     END
   ) STORED,
   final_substitute_status ENUM('pending','accepted','rejected') DEFAULT 'pending',
-  hod_status ENUM('pending','approved','rejected') DEFAULT null,
-  principal_status ENUM('pending','approved','rejected') DEFAULT null,
+  hod_status ENUM('pending','approved','rejected') DEFAULT 'pending',
+  principal_status ENUM('pending','approved','rejected') DEFAULT 'pending',
   final_status ENUM('pending','approved','rejected','cancelled') DEFAULT 'pending',
   
   applied_on DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -178,7 +178,8 @@ CREATE TABLE password_reset_requests (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     resolved_at TIMESTAMP NULL DEFAULT NULL,
     INDEX (user_id),
-    INDEX (status)
+    INDEX (status),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 DELIMITER $$
 
