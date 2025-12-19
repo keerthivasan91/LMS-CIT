@@ -30,45 +30,36 @@ async function insertLeaveRequest(conn, data) {
   const startSession = normalizeSession(start_session);
   const endSession = normalizeSession(end_session);
 
-  let hod_status = null;
-  let principal_status = null;
   let final_substitute_status = "pending";
+  let hod_status = "pending";
+  let principal_status = "pending";
 
-  // Determine workflow based on hasSubstitutes and userRole
+  // ✅ ONLY condition for substitute auto-accept
   if (!hasSubstitutes) {
     final_substitute_status = "accepted";
+  }
 
-    if (userRole === "hod") {
-      hod_status = "approved";          // HOD applying → skip HOD stage
-      principal_status = "pending";
-    } else if (userRole === "faculty" || userRole === "staff") {
-      hod_status = "pending";           // Faculty/Staff applies → goes to HOD
-    } else if (userRole === "admin") {
-      hod_status = "pending";          // Principal applies → skip to principal
-      principal_status = "pending";
-    }
-  } else {
-    // Has substitutes
-    final_substitute_status = "pending";
-    if (userRole === "hod") {
-      hod_status = null;  // Wait for substitutes first
-    } else if (userRole === "faculty" || userRole === "staff") {
-      hod_status = null;  // Wait for substitutes first
-    } else if (userRole === "admin") {
-      hod_status = null;  // Wait for substitutes first
-      principal_status = null;  // Still need substitutes
-    }
+  // HOD applying → skip HOD stage
+  if (userRole === "hod") {
+    hod_status = "approved";
+  }
+
+  // Principal applying → skip HOD & Principal stages
+  if (userRole === "principal") {
+    hod_status = "approved";
+    principal_status = "approved";
   }
 
   const [res] = await conn.query(
     `INSERT INTO leave_requests
-      (user_id, department_code, leave_type,
-       start_date, start_session,
-       end_date, end_session,
-       reason,
-       final_substitute_status,
-       hod_status, principal_status,
-       final_status)
+     (user_id, department_code, leave_type,
+      start_date, start_session,
+      end_date, end_session,
+      reason,
+      final_substitute_status,
+      hod_status,
+      principal_status,
+      final_status)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
       user_id,
@@ -87,6 +78,7 @@ async function insertLeaveRequest(conn, data) {
 
   return res.insertId;
 }
+
 
 /* ========================================================================
    2) INSERT ARRANGEMENT ROW
@@ -133,109 +125,6 @@ async function getArrangementsByLeave(leaveId) {
   return rows;
 }
 
-/* ========================================================================
-   5) UPDATE ARRANGEMENT STATUS
-======================================================================== */
-async function updateArrangementStatus(arrangementId, status) {
-  const conn = await pool.getConnection();
-  
-  try {
-    await conn.beginTransaction();
-
-    // 1 — Update arrangement row
-    await conn.query(
-      `UPDATE arrangements
-       SET status = ?, responded_on = NOW()
-       WHERE arrangement_id = ?`,
-      [status, arrangementId]
-    );
-
-    // 2 — Get leave ID and arrangements
-    const [[arrangement]] = await conn.query(
-      `SELECT leave_id FROM arrangements WHERE arrangement_id = ?`,
-      [arrangementId]
-    );
-
-    if (!arrangement) {
-      await conn.rollback();
-      return { success: false, message: "Arrangement not found" };
-    }
-
-    const leaveId = arrangement.leave_id;
-
-    // 3 — Get all arrangement statuses for this leave
-    const [arrangements] = await conn.query(
-      `SELECT status FROM arrangements WHERE leave_id = ?`,
-      [leaveId]
-    );
-
-    const statuses = arrangements.map(a => a.status);
-    const allArrangementsCount = arrangements.length;
-
-    // 4 — Determine final_substitute_status
-    let finalSubstituteStatus = "pending";
-    
-    if (statuses.includes("rejected")) {
-      finalSubstituteStatus = "rejected";
-    } else if (allArrangementsCount > 0 && statuses.every(s => s === "accepted")) {
-      finalSubstituteStatus = "accepted";
-    }
-
-    // 5 — Update leave_requests
-    await conn.query(
-      `UPDATE leave_requests
-       SET final_substitute_status = ?,
-           updated_at = NOW()
-       WHERE leave_id = ?`,
-      [finalSubstituteStatus, leaveId]
-    );
-
-    // 6 — If all substitutes accepted, set hod_status to pending if needed
-    if (finalSubstituteStatus === "accepted") {
-      const [[leave]] = await conn.query(
-        `SELECT hod_status, user_id, department_code FROM leave_requests WHERE leave_id = ?`,
-        [leaveId]
-      );
-
-      if (!leave.hod_status) {
-        const [[user]] = await conn.query(
-          `SELECT role FROM users WHERE user_id = ?`,
-          [leave.user_id]
-        );
-
-        if (user.role === "hod" || user.role === "principal") {
-          // HOD or Principal applying - auto approve HOD stage
-          await conn.query(
-            `UPDATE leave_requests
-             SET hod_status = 'approved',
-                 principal_status = CASE WHEN ? = 'principal' THEN 'pending' ELSE NULL END,
-                 updated_at = NOW()
-             WHERE leave_id = ?`,
-            [user.role, leaveId]
-          );
-        } else {
-          // Faculty/Staff - set hod_status to pending
-          await conn.query(
-            `UPDATE leave_requests
-             SET hod_status = 'pending',
-                 updated_at = NOW()
-             WHERE leave_id = ?`,
-            [leaveId]
-          );
-        }
-      }
-    }
-
-    await conn.commit();
-    return { success: true, leaveId };
-
-  } catch (error) {
-    await conn.rollback();
-    throw error;
-  } finally {
-    conn.release();
-  }
-}
 
 /* ========================================================================
    6) USER LEAVE HISTORY
@@ -517,7 +406,7 @@ async function getLeaveBalance(dept) {
        FROM users u
        LEFT JOIN leave_balance lb ON u.user_id = lb.user_id AND lb.academic_year = YEAR(CURDATE())
        WHERE u.department_code = ?
-         AND u.role IN ('faculty', 'hod', 'staff')
+         AND u.role IN ('faculty', 'hod', 'staff', 'admin')
          AND u.is_active = 1
        ORDER BY u.name`,
     [dept]
@@ -533,7 +422,7 @@ async function getDepartments() {
   const [rows] = await pool.query(
     `SELECT DISTINCT department_code as code
      FROM users
-     WHERE role IN ('faculty', 'hod', 'staff')
+     WHERE role IN ('faculty', 'hod', 'staff', 'admin')
      ORDER BY department_code`
   );
 
@@ -683,7 +572,6 @@ module.exports = {
   insertArrangement,
   getSubstituteDetails,
   getArrangementsByLeave,
-  updateArrangementStatus,
   getAppliedLeaves,
   getSubstituteRequests,
   getApplicantDetails,
