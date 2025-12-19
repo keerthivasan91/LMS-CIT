@@ -57,7 +57,7 @@ async function checkAllAccepted(conn, leave_id) {
     [leave_id]
   );
 
-  return row.accepted === row.total;
+  return row.total > 0 && row.accepted === row.total;
 }
 
 /* =============================================================
@@ -65,18 +65,19 @@ async function checkAllAccepted(conn, leave_id) {
 ============================================================= */
 async function acceptSubstitute(req, res, next) {
   const arrangementId = req.params.arrangementId;
-  const subId = req.user.user_id;
+  const substituteId = req.user.user_id;
 
   const conn = await pool.getConnection();
 
   try {
     await conn.beginTransaction();
 
-    // Fetch arrangement + leave info
+    /* ---------------------------------------------------------
+       STEP 0 — Validate substitute request
+    --------------------------------------------------------- */
     const [[info]] = await conn.query(
       `SELECT 
           a.leave_id,
-          a.substitute_id,
           u.role AS applicant_role,
           u.email,
           u.phone,
@@ -84,64 +85,83 @@ async function acceptSubstitute(req, res, next) {
        FROM arrangements a
        JOIN leave_requests lr ON a.leave_id = lr.leave_id
        JOIN users u ON lr.user_id = u.user_id
-       WHERE a.arrangement_id = ? AND a.substitute_id = ?
+       WHERE a.arrangement_id = ?
+         AND a.substitute_id = ?
        LIMIT 1`,
-      [arrangementId, subId]
+      [arrangementId, substituteId]
     );
 
-    if (!info) throw new Error("Invalid substitute request");
+    if (!info) {
+      throw new Error("Invalid substitute request");
+    }
 
-    /* Step 1 — Accept THIS substitute row */
+    /* ---------------------------------------------------------
+       STEP 1 — Accept THIS arrangement
+    --------------------------------------------------------- */
     await conn.query(
-      `UPDATE arrangements 
-       SET status='accepted', responded_on=NOW()
+      `UPDATE arrangements
+       SET status = 'accepted',
+           responded_on = NOW()
        WHERE arrangement_id = ?`,
       [arrangementId]
     );
 
-    /* Step 2 — Check if all have accepted */
-    /* =============================================================
-   HELPER – Check if all arrangements accepted
-============================================================= */
-    
+    /* ---------------------------------------------------------
+       STEP 2 — RECOMPUTE substitute status (CRITICAL FIX)
+    --------------------------------------------------------- */
+    const [[stats]] = await conn.query(
+      `SELECT
+          COUNT(*) AS total,
+          SUM(status = 'accepted') AS accepted,
+          SUM(status = 'rejected') AS rejected
+       FROM arrangements
+       WHERE leave_id = ?`,
+      [info.leave_id]
+    );
 
+    let finalSubstituteStatus = "pending";
 
-    if (!checkAllAccepted) {
-      // Still pending → update leave as pending
-      await conn.query(
-        `UPDATE leave_requests
-         SET final_substitute_status='pending'
-         WHERE leave_id = ?`,
-        [info.leave_id]
-      );
-
-      await conn.commit();
-      return res.json({
-        ok: true,
-        message: "Accepted. Waiting for other substitutes."
-      });
+    if (stats.rejected > 0) {
+      finalSubstituteStatus = "rejected";
+    } else if (stats.total > 0 && stats.accepted === stats.total) {
+      finalSubstituteStatus = "accepted";
     }
 
-    /* Step 3 — ALL accepted: Move leave to HOD/Principal */
-    if (info.applicant_role === "hod") {
-      // HOD → skips HOD stage
-      await conn.query(
-        `UPDATE leave_requests
-         SET final_substitute_status='accepted',
-             hod_status='approved',
-             principal_status='pending',
-             updated_at=NOW()
-         WHERE leave_id = ?`,
-        [info.leave_id]
-      );
+    /* ---------------------------------------------------------
+       STEP 3 — Update leave_requests based on recomputation
+    --------------------------------------------------------- */
+    if (finalSubstituteStatus === "accepted") {
+
+      if (info.applicant_role === "hod") {
+        // HOD applying → skip HOD, go to Principal
+        await conn.query(
+          `UPDATE leave_requests
+           SET final_substitute_status = 'accepted',
+               hod_status = 'approved',
+               principal_status = 'pending',
+               updated_at = NOW()
+           WHERE leave_id = ?`,
+          [info.leave_id]
+        );
+      } else {
+        // Faculty / Staff / Admin → go to HOD
+        await conn.query(
+          `UPDATE leave_requests
+           SET final_substitute_status = 'accepted',
+               hod_status = 'pending',
+               principal_status = 'pending',
+               updated_at = NOW()
+           WHERE leave_id = ?`,
+          [info.leave_id]
+        );
+      }
+
     } else {
-      // Normal faculty
+      // Still waiting for other substitutes
       await conn.query(
         `UPDATE leave_requests
-         SET final_substitute_status='accepted',
-             hod_status='pending',
-             principal_status=NULL,
-             updated_at=NOW()
+         SET final_substitute_status = 'pending',
+             updated_at = NOW()
          WHERE leave_id = ?`,
         [info.leave_id]
       );
@@ -149,27 +169,42 @@ async function acceptSubstitute(req, res, next) {
 
     await conn.commit();
 
-    /* Step 4 — Notify applicant */
-    if (info.email) {
-      const nextStage = info.applicant_role === "hod" ? "Principal" : "HOD";
+    /* ---------------------------------------------------------
+       STEP 4 — Notify applicant (AFTER COMMIT)
+    --------------------------------------------------------- */
+    if (finalSubstituteStatus === "accepted") {
+      const nextStage =
+        info.applicant_role === "hod" ? "Principal" : "HOD";
 
-      sendMail(
-        info.email,
-        "Substitute Accepted",
-        `
-        <h3>Hello ${info.name},</h3>
-        <p>All substitutes have <b>accepted</b> your request.</p>
-        <p>Your leave is now forwarded to <b>${nextStage}</b>.</p>
-      `
-      );
+      if (info.email) {
+        sendMail(
+          info.email,
+          "Substitute Accepted",
+          `
+          <h3>Hello ${info.name},</h3>
+          <p>All substitutes have <b>accepted</b> your request.</p>
+          <p>Your leave is now forwarded to <b>${nextStage}</b>.</p>
+          `
+        );
+      }
+
+      if (info.phone) {
+        sendSMS(
+          info.phone,
+          `All substitutes accepted. Sent to ${nextStage}.`
+        );
+      }
+
+      return res.json({
+        ok: true,
+        message: "All substitutes accepted. Moved to next stage."
+      });
     }
 
-    if (info.phone) {
-      const nextStage = info.applicant_role === "hod" ? "Principal" : "HOD";
-      sendSMS(info.phone, `All substitutes accepted. Sent to ${nextStage}.`);
-    }
-
-    res.json({ ok: true, message: "All substitutes accepted. Moved to next stage." });
+    return res.json({
+      ok: true,
+      message: "Accepted. Waiting for other substitutes."
+    });
 
   } catch (err) {
     await conn.rollback();
@@ -179,19 +214,19 @@ async function acceptSubstitute(req, res, next) {
   }
 }
 
+
 /* =============================================================
    3. REJECT SUBSTITUTE REQUEST
 ============================================================= */
 async function rejectSubstitute(req, res, next) {
   const arrangementId = req.params.arrangementId;
-  const subId = req.user.user_id;
+  const substituteId = req.user.user_id;
 
   const conn = await pool.getConnection();
 
   try {
     await conn.beginTransaction();
 
-    // Fetch leave + applicant details
     const [[info]] = await conn.query(
       `SELECT 
           a.leave_id,
@@ -203,12 +238,12 @@ async function rejectSubstitute(req, res, next) {
        JOIN users u ON lr.user_id = u.user_id
        WHERE a.arrangement_id = ? AND a.substitute_id = ?
        LIMIT 1`,
-      [arrangementId, subId]
+      [arrangementId, substituteId]
     );
 
     if (!info) throw new Error("Invalid substitute request");
 
-    /* Step 1 — Reject this substitute request */
+    /* Step 1 — Reject arrangement */
     await conn.query(
       `UPDATE arrangements
        SET status='rejected', responded_on=NOW()
@@ -220,8 +255,8 @@ async function rejectSubstitute(req, res, next) {
     await conn.query(
       `UPDATE leave_requests
        SET final_substitute_status='rejected',
-           hod_status=NULL,
-           principal_status=NULL,
+           hod_status='rejected',
+           principal_status='rejected',
            final_status='rejected',
            updated_at=NOW()
        WHERE leave_id = ?`,
@@ -237,14 +272,14 @@ async function rejectSubstitute(req, res, next) {
         "Substitute Rejected",
         `
         <h3>Hello ${info.name},</h3>
-        <p>Your substitute has <b>rejected</b> your request.</p>
-        <p>Your leave is now <b>rejected</b>.</p>
-      `
+        <p>Your substitute has <b>rejected</b> the request.</p>
+        <p>Your leave has been <b>rejected</b>.</p>
+        `
       );
     }
 
     if (info.phone) {
-      sendSMS(info.phone, "Your substitute rejected. Leave request closed.");
+      sendSMS(info.phone, "Substitute rejected. Leave request closed.");
     }
 
     res.json({ ok: true, message: "Substitute rejected. Leave closed." });
@@ -263,6 +298,6 @@ async function rejectSubstitute(req, res, next) {
 module.exports = {
   substituteRequestsForUser,
   acceptSubstitute,
-  checkAllAccepted,
   rejectSubstitute,
+  checkAllAccepted
 };
