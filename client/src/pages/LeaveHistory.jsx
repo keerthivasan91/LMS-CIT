@@ -152,7 +152,7 @@ const LeaveHistory = () => {
                     <th>ID</th><th>Type</th>
                     <th>Start</th><th>Session</th>
                     <th>End</th><th>Session</th>
-                    <th>Days</th><th>Substitute</th>
+                    <th>Days</th>
                     <th>Final Sub Status</th><th>HOD</th>
                     <th>Principal</th><th>Final</th>
                     <th>Reason</th>
@@ -173,7 +173,6 @@ const LeaveHistory = () => {
                       <td>{l.end_session}</td>
 
                       <td>{l.days}</td>
-                      <td>{l.substitute || "None"}</td>
 
                       <td>{l.sub_status}</td>
                       <td>{l.hod_status}</td>
