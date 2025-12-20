@@ -73,8 +73,8 @@ const Profile = () => {
       <div className="leave-balance-card">
         <h3>Leave Balance</h3>
         <p><strong>CL Remaining:</strong> {leaveBalance.casual_total}</p>
-        <p><strong>SL Remaining:</strong> {leaveBalance.earned_total}</p>
-        <p><strong>PL Remaining:</strong> {leaveBalance.rh_total}</p>
+        <p><strong>EL Remaining:</strong> {leaveBalance.earned_total}</p>
+        <p><strong>RH Remaining:</strong> {leaveBalance.rh_total}</p>
       </div>
     </div>
   );
