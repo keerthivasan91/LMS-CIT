@@ -10,7 +10,6 @@ const LeaveModel = require("../models/Leave");
    - Admin behaves like staff in workflow
 ============================================================ */
 async function applyLeave(req, res, next) {
-  console.log("REQ BODY:", req.body);
 
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
@@ -41,6 +40,30 @@ async function applyLeave(req, res, next) {
       { dept: arr4_dept, faculty: arr4_faculty, staff: arr4_staff, details: arr4_details }
     ];
 
+    // -----------------------------
+    // Date validation (backend)
+    // -----------------------------
+    const selectedStart = new Date(start_date);
+    selectedStart.setHours(0, 0, 0, 0);
+
+    const minDate = new Date();
+    minDate.setHours(0, 0, 0, 0);
+    minDate.setDate(minDate.getDate() - 3);
+
+    if (selectedStart < minDate) {
+      return res.status(400).json({
+        message: "Leave cannot be applied for dates older than 3 days"
+      });
+    }
+    const selectedEnd = new Date(end_date);
+    selectedEnd.setHours(0, 0, 0, 0);
+    if (selectedEnd < selectedStart) {
+      return res.status(400).json({
+        message: "End date cannot be before start date"
+      });
+    }
+
+
     const arrangements = rows
       .map(r => {
         let substitute = null;
@@ -66,7 +89,7 @@ async function applyLeave(req, res, next) {
 
     const hasSubstitutes = arrangements.length > 0;
     console.log("ARRANGEMENTS:", arrangements);
-console.log("hasSubstitutes:", hasSubstitutes);
+    console.log("hasSubstitutes:", hasSubstitutes);
 
 
     /* -----------------------------
