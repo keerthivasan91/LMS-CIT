@@ -233,6 +233,7 @@ async function leaveHistory(req, res, next) {
         `SELECT lr.*, u.name AS requester_name, u.department_code, u.designation
          FROM leave_requests lr
          JOIN users u ON lr.user_id = u.user_id
+         WHERE lr.final_status = 'approved'
          ${selected_department ? "WHERE u.department_code = ?" : ""}
          ORDER BY lr.applied_on DESC`,
         selected_department ? [selected_department] : []
