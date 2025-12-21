@@ -66,6 +66,9 @@ const LeaveForm = ({
         value={form.start_date}
         onChange={onChange}
         required
+        min={new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0]}
       />
 
       <label>Start Session</label>
@@ -81,6 +84,9 @@ const LeaveForm = ({
         value={form.end_date}
         onChange={onChange}
         required
+        min={new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0]}
       />
 
       <label>End Session</label>
