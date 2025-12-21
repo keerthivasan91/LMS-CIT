@@ -128,11 +128,6 @@ const ApplyLeave = () => {
   const submitForm = async (e) => {
     e.preventDefault();
 
-    // Mandatory substitute check (except principal if you allow)
-    if (isStaffLike && !form.arr1_staff) {
-      showSnackbar("Please select a substitute", "error");
-      return;
-    }
 
     const payload = {
       leave_type: form.leave_type,
