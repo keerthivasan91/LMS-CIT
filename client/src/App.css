@@ -1347,3 +1347,88 @@ body {
     padding: 20px;
   }
 }
+
+/* ================================
+   Admin Holiday Form
+================================ */
+
+.table-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* Date + text inputs */
+.table-wrapper input[type="date"],
+.table-wrapper input[type="text"] {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  outline: none;
+  min-width: 160px;
+}
+
+.table-wrapper input:focus {
+  border-color: #007bff;
+}
+
+
+/* Space between action buttons inside table */
+.history-table td button {
+  margin-right: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  
+}
+
+/* Optional: remove extra space after last button */
+.history-table td button:last-child {
+  margin-right: 0;
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Add / Update button */
+.table-wrapper button {
+  padding: 8px 16px;
+  font-size: 14px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.table-wrapper button:hover {
+  background-color: #0056b3;
+}
+.table-wrapper button:last-child:hover {
+  background-color: #721c24;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .table-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-wrapper input,
+  .table-wrapper button:first-child {
+    width: 50%;
+  }
+}
+
