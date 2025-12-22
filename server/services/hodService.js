@@ -22,7 +22,7 @@ async function approveLeave(leaveId) {
 }
 
 async function rejectLeave(leaveId) {
-  const applicant = await LeaveModel.getLeaveApplicant(leaveId);
+  const applicant = await LeaveModel.getApplicantDetails(leaveId);
   if (!applicant) throw new Error("Leave not found");
 
   await LeaveModel.updateHodStatus(leaveId, "rejected");
