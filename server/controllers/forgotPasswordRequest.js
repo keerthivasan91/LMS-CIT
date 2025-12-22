@@ -34,19 +34,6 @@ async function requestPasswordReset(req, res, next) {
       [user_id, email]
     );
 
-    // Notify admin via email
-    await sendMail(
-      process.env.ADMIN_EMAIL,
-      "LMS: Password Reset Request",
-      `
-        <h3>Password Reset Request</h3>
-        <p><b>Name:</b> ${user[0].name}</p>
-        <p><b>User ID:</b> ${user_id}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p>Please log in to the LMS admin panel and reset their password.</p>
-      `
-    );
-
     res.json({ ok: true, message: "Request sent to admin. You'll be notified once password is reset." });
 
   } catch (err) {
