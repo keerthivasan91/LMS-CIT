@@ -2,6 +2,7 @@
 
 const bcrypt = require("bcryptjs");
 const AdminModel = require("../models/Admin");
+const { passwordResetByAdminMail } = require("../services/mailTemplates/auth.templates");
 
 async function getResetRequests(req, res, next) {
   try {
@@ -31,11 +32,14 @@ async function adminResetPasswordFinal(req, res, next) {
     const hashed = await bcrypt.hash(new_password, 10);
 
     await AdminModel.resetPasswordAndResolve(user_id, hashed);
-
+    const user = await AdminModel.getUserById(user_id);
     res.json({
       ok: true,
       message: `Password updated for ${user_id}`
     });
+
+    // Notify user via email
+    await passwordResetByAdminMail(user, new_password);
 
   } catch (err) {
     next(err);
