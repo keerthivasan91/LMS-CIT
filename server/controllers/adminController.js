@@ -43,7 +43,7 @@ async function approvePrincipal(req, res, next) {
     await sendMail({
       to: applicant.email,
       subject: "Leave Approved By Principal",
-      html: leaveApproved({ leaveId })
+      html: leaveApproved({ name: applicant.name, leaveId })
     });
 
   } catch (err) {
@@ -67,7 +67,7 @@ async function rejectPrincipal(req, res, next) {
     await sendMail({
       to: applicant.email,
       subject: "Leave rejected By Principal",
-      html: leaveRejected({ leaveId })
+      html: leaveRejected({ name: applicant.name, leaveId })
     });
 
   } catch (err) {
