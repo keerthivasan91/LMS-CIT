@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 const pool = require("../config/db");
-const sendMail = require("../config/mailer");
+const { sendMail } = require("../services/mail.service");
 const LeaveModel = require("../models/User");
-
+const { passwordChanged } = require("../services/mailTemplates/auth.templates");
 async function changePassword(req, res, next) {
   try {
     const user_id = req.user.user_id;
@@ -36,14 +36,11 @@ async function changePassword(req, res, next) {
       [hashed, user_id]
     );
 
-    await sendMail(
-      applicant.email,
-      "LMS: Password Changed",
-      `
-        <h3>Password Changed Successfully</h3>
-        <p>Your password has been changed. If you did not perform this action, please contact support immediately.</p>
-      `
-    );
+     await sendMail({
+      to: applicant.email,
+      subject: "Password Changed Successfully",
+      html: passwordChanged({ name: applicant.name })
+    });
 
     return res.json({ ok: true, message: "Password changed successfully" });
   } catch (err) {
