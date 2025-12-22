@@ -1,47 +1,47 @@
 const LeaveModel = require("../models/Leave");
-const sendMail = require("../config/mailer");
+const {sendMail} = require("./mail.service");
+const { hodApproved, hodRejected } = require("./mailTemplates/leave.templates");
 
 async function approveLeave(leaveId) {
-  const applicant = await LeaveModel.getApplicantDetails(leaveId);
-  if (!applicant) throw new Error("Leave not found");
+    const applicant = await LeaveModel.getApplicantDetails(leaveId);
+    if (!applicant) throw new Error("Leave record not found");
 
-  await LeaveModel.updateHodStatus(leaveId, "approved");
+    // 1. Update DB Status
+    await LeaveModel.updateHodStatus(leaveId, "approved");
 
-  // Send mail
-  await sendMail(
-    applicant.email,
-    "Leave Approved by HOD",
-    `
-      <h2>Hello ${applicant.name},</h2>
-      <p>Your leave request has been <b>approved by the HOD</b>.</p>
-      <p>It has been forwarded to the Principal.</p>
-    `
-  );
+    // 2. Send Industry-Standard Email
+    try {
+        await sendMail({
+            to: applicant.email,
+            subject: `Leave Update [ID: #${leaveId}]: Approved by HOD`,
+            html: hodApproved({ name: applicant.name, leaveId: leaveId })
+        });
+    } catch (mailError) {
+        console.error("Email failed to send, but DB was updated:", mailError);
+    }
 
-  return true;
+    return { success: true, message: "Leave approved and forwarded to Principal" };
 }
 
 async function rejectLeave(leaveId) {
-  const applicant = await LeaveModel.getApplicantDetails(leaveId);
-  if (!applicant) throw new Error("Leave not found");
+    const applicant = await LeaveModel.getApplicantDetails(leaveId);
+    if (!applicant) throw new Error("Leave record not found");
 
-  await LeaveModel.updateHodStatus(leaveId, "rejected");
+    // 1. Update DB Status
+    await LeaveModel.updateHodStatus(leaveId, "rejected");
 
-  // Send mail
-  await sendMail(
-    applicant.email,
-    "Leave Rejected by HOD",
-    `
-      <h2>Hello ${applicant.name},</h2>
-      <p>Your leave request has been <b>rejected by the HOD</b>.</p>
-      <p>This decision is final.</p>
-    `
-  );
+    // 2. Send Industry-Standard Email
+    try {
+        await sendMail({
+            to: applicant.email,
+            subject: `Leave Update [ID: #${leaveId}]: Rejected by HOD`,
+            html: hodRejected({ name: applicant.name, leaveId: leaveId })
+        });
+    } catch (mailError) {
+        console.error("Email failed to send:", mailError);
+    }
 
-  return true;
+    return { success: true, message: "Leave rejection recorded" };
 }
 
-module.exports = {
-  approveLeave,
-  rejectLeave,
-};
+module.exports = { approveLeave, rejectLeave };
