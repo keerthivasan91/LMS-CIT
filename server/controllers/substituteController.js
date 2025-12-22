@@ -1,6 +1,10 @@
 const pool = require("../config/db");
-const sendMail = require("../config/mailer");
-const sendSMS = require("../config/sms");
+const { sendMail } = require("../services/mail.service");
+
+const {
+  substituteAcceptedAll,
+  substituteRejected
+} = require("../services/mailTemplates/substitute.templates");
 
 /* =============================================================
    1. GET SUBSTITUTE REQUESTS FOR LOGGED-IN USER
@@ -118,12 +122,15 @@ async function acceptSubstitute(req, res, next) {
        WHERE leave_id = ?`,
       [info.leave_id]
     );
+    const total = Number(stats.total);
+    const accepted = Number(stats.accepted);
+    const rejected = Number(stats.rejected);
 
     let finalSubstituteStatus = "pending";
 
-    if (stats.rejected > 0) {
+    if (rejected > 0) {
       finalSubstituteStatus = "rejected";
-    } else if (stats.total > 0 && stats.accepted === stats.total) {
+    } else if (total > 0 && accepted === total) {
       finalSubstituteStatus = "accepted";
     }
 
@@ -177,22 +184,11 @@ async function acceptSubstitute(req, res, next) {
         info.applicant_role === "hod" ? "Principal" : "HOD";
 
       if (info.email) {
-        sendMail(
-          info.email,
-          "Substitute Accepted",
-          `
-          <h3>Hello ${info.name},</h3>
-          <p>All substitutes have <b>accepted</b> your request.</p>
-          <p>Your leave is now forwarded to <b>${nextStage}</b>.</p>
-          `
-        );
-      }
-
-      if (info.phone) {
-        sendSMS(
-          info.phone,
-          `All substitutes accepted. Sent to ${nextStage}.`
-        );
+        await sendMail({
+          to: info.email,
+          subject: "All Substitutes Accepted",
+          html: substituteAcceptedAll({ name: info.name, nextStage })
+        });
       }
 
       return res.json({
@@ -267,19 +263,11 @@ async function rejectSubstitute(req, res, next) {
 
     /* Step 3 — Notify applicant */
     if (info.email) {
-      sendMail(
-        info.email,
-        "Substitute Rejected",
-        `
-        <h3>Hello ${info.name},</h3>
-        <p>Your substitute has <b>rejected</b> the request.</p>
-        <p>Your leave has been <b>rejected</b>.</p>
-        `
-      );
-    }
-
-    if (info.phone) {
-      sendSMS(info.phone, "Substitute rejected. Leave request closed.");
+      await sendMail({
+        to: info.email,
+        subject: "Substitute Rejected",
+        html: substituteRejected({ name: info.name })
+      });
     }
 
     res.json({ ok: true, message: "Substitute rejected. Leave closed." });
