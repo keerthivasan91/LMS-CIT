@@ -98,7 +98,7 @@ const Holidays = () => {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
-          <button onClick={submitHoliday}>
+          <button onClick={submitHoliday} className="add-update-btn">
             {form.holiday_id ? "Update" : "Add"}
           </button>
         </div>
