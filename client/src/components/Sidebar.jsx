@@ -94,7 +94,7 @@ const Sidebar = ({
         {roleInfo.isHod && (
           <>
             <li>
-              <NavLink to="/hod">
+              <NavLink to="/hod" end>
                 HOD Approvals
                 {pendingHod > 0 && (
                   <span className="sidebar-badge">{pendingHod}</span>
