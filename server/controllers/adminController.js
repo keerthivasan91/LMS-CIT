@@ -1,7 +1,7 @@
 // controllers/adminDashboard.js
 
 const AdminModel = require("../models/Admin");
-const sendMail = require("../services/mail.service");
+const {sendMail} = require("../services/mail.service");
 const {
   leaveApproved,
   leaveRejected
