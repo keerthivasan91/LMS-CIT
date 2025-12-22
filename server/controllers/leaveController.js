@@ -135,9 +135,11 @@ async function applyLeave(req, res, next) {
             to: sub.email,
             subject: "Substitute Request Assigned",
             html: substituteRequest({
+              name: sub.name,
               startDate: start_date,
               endDate: end_date,
-              details: arr.details
+              details: arr.details,
+              requesterName: req.user.name
             })
           });
         }
@@ -152,11 +154,10 @@ async function applyLeave(req, res, next) {
       for (const mail of mailQueue) {
         await sendMail(mail);
       }
-
       await sendMail({
         to: userEmail,
         subject: "Leave Request Submitted",
-        html: leaveApplied({ leaveId: leave_id })
+        html: leaveApplied({ name: req.user.name, leaveId: leave_id, type: leave_type, startDate: start_date, endDate: end_date })
       });
       return res.json({ ok: true, leave_id });
 
