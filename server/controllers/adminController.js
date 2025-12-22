@@ -1,7 +1,11 @@
 // controllers/adminDashboard.js
 
 const AdminModel = require("../models/Admin");
-const sendMail = require("../config/mailer");
+const sendMail = require("../services/mail.service");
+const {
+  leaveApproved,
+  leaveRejected
+} = require("../services/mailTemplates/leave.templates");
 
 async function adminDashboard(req, res, next) {
   try {
@@ -36,12 +40,11 @@ async function approvePrincipal(req, res, next) {
 
     res.json({ ok: true });
 
-    await sendMail(
-      applicant.email,
-      "Leave Approved",
-      `<h2>Hello ${applicant.name}</h2>
-       <p>Your leave request is approved by the Principal.</p>`
-    );
+    await sendMail({
+      to: applicant.email,
+      subject: "Leave Approved By Principal",
+      html: leaveApproved({ leaveId })
+    });
 
   } catch (err) {
     next(err);
@@ -61,12 +64,11 @@ async function rejectPrincipal(req, res, next) {
 
     res.json({ ok: true });
 
-    await sendMail(
-      applicant.email,
-      "Leave Rejected",
-      `<h2>Hello ${applicant.name}</h2>
-       <p>Your leave request was rejected by the Principal.</p>`
-    );
+    await sendMail({
+      to: applicant.email,
+      subject: "Leave rejected By Principal",
+      html: leaveRejected({ leaveId })
+    });
 
   } catch (err) {
     next(err);
