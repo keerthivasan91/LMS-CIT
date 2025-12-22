@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import Footer from "./Footer";
 import { Outlet } from "react-router-dom";
-
 const Layout = () => {
   const [counters, setCounters] = useState({
     pendingSubs: 0,
@@ -45,18 +45,22 @@ const Layout = () => {
           onClick={closeSidebar}
         />
 
-        {/* Pass state to Sidebar */}
-        <Sidebar
-          pendingSubs={counters.pendingSubs}
-          pendingHod={counters.pendingHod}
-          pendingPrincipal={counters.pendingPrincipal}
-          sidebarOpen={sidebarOpen}
-          closeSidebar={closeSidebar}
-        />
+        <div className="layout-body">
+          {/* Pass state to Sidebar */}
+          <Sidebar
+            pendingSubs={counters.pendingSubs}
+            pendingHod={counters.pendingHod}
+            pendingPrincipal={counters.pendingPrincipal}
+            sidebarOpen={sidebarOpen}
+            closeSidebar={closeSidebar}
+          />
 
-        <main className="main-content">
-          <Outlet />
-        </main>
+          <main className="main-content">
+            <Outlet />
+          </main>
+        </div>
+        
+        <Footer />
       </div>
     </>
   );
