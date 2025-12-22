@@ -77,7 +77,7 @@ async function adminAddUser(req, res, next) {
     await sendMail({
       to: email,
       subject: "Your LMS Account Created",
-      html: userCreated({ user_id, password })
+      html: userCreated({ name , user_id, password })
     });
 
     res.json({ ok: true, type: "success", message: "User added successfully" });
