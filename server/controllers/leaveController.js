@@ -1,6 +1,10 @@
 const pool = require("../config/db");
-const sendMail = require("../config/mailer");
+const { sendMail } = require("../services/mail.service");
 const LeaveModel = require("../models/Leave");
+const {
+  leaveApplied,
+  substituteRequest,
+} = require("../services/mailTemplates/leave.templates");
 
 /* ============================================================
    APPLY LEAVE
@@ -130,12 +134,11 @@ async function applyLeave(req, res, next) {
           mailQueue.push({
             to: sub.email,
             subject: "Substitute Request Assigned",
-            body: `
-              <p>You have been requested to substitute from <b>${start_date}</b> to <b>${end_date}</b>.</p>
-              <p><b>Leave ID:</b> ${leave_id}</p>
-              <p><b>Details:</b> ${arr.details || "No details provided"}</p>
-              <p>Please accept or reject this request in the FLMS portal.</p>
-            `
+            html: substituteRequest({
+              startDate: start_date,
+              endDate: end_date,
+              details: arr.details
+            })
           });
         }
       }
@@ -147,15 +150,14 @@ async function applyLeave(req, res, next) {
          SEND MAILS AFTER COMMIT
       ----------------------------- */
       for (const mail of mailQueue) {
-        sendMail(mail.to, mail.subject, mail.body);
+        await sendMail(mail);
       }
 
-      sendMail(
-        userEmail,
-        "Leave Request Submitted",
-        `<p>Your leave request (ID:<b>${leave_id}</b>) has been submitted successfully.</p>`
-      );
-
+      await sendMail({
+        to: userEmail,
+        subject: "Leave Request Submitted",
+        html: leaveApplied({ leaveId: leave_id })
+      });
       return res.json({ ok: true, leave_id });
 
     } catch (err) {
