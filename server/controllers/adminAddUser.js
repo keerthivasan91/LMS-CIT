@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
-const sendMail = require("../config/mailer");
+const { sendMail } = require("../services/mail.service");
 const UserModel = require("../models/User");
-
+const { userCreated } = require("../services/mailTemplates/user.templates");
 async function adminAddUser(req, res, next) {
   try {
     if (!req.user || !["admin"].includes(req.user.role)) {
@@ -74,14 +74,11 @@ async function adminAddUser(req, res, next) {
       password: hashedPassword
     });
 
-    sendMail(
-      email,
-      "Your LMS Account Created",
-      `<h2>Welcome ${name}</h2>
-       <p>Your LMS account is created:</p>
-       <p><b>User ID:</b> ${user_id}</p>
-       <p><b>Password:</b> ${password}</p>`
-    );
+    await sendMail({
+      to: email,
+      subject: "Your LMS Account Created",
+      html: userCreated({ user_id, password })
+    });
 
     res.json({ ok: true, type: "success", message: "User added successfully" });
 
