@@ -321,18 +321,6 @@ INSERT INTO password_reset_requests (user_id, email, status, created_at) VALUES
 ('FAC003', 'deepa.cse@cit.edu', 'pending', '2025-03-20 16:20:00'),
 ('STAFF12', 'shanthi.staff@cit.edu', 'pending', CURDATE());
 
--- =====================================================================
--- MAIL_QUEUE (Sample email queue entries)
--- =====================================================================
-INSERT INTO mail_queue (to_email, subject, body, status, attempts) VALUES
-('keerthi.cse@cit.edu', 'Leave Request Submitted', 'Your leave request has been submitted successfully', 'sent', 1),
-('hod.cse@cit.edu', 'New Leave Request for Approval', 'You have a new leave request pending approval', 'sent', 1),
-('arun.cse@cit.edu', 'Substitute Request', 'You have been requested as substitute for a class', 'pending', 0),
-('principal@cit.edu', 'OOD Request Requires Approval', 'An OOD leave request requires your attention', 'pending', 0),
-('deepa.cse@cit.edu', 'Leave Request Status Update', 'Your leave request status has been updated', 'failed', 2),
-('hod.mech@cit.edu', 'Pending Leave Requests', '3 leave requests require your attention', 'sent', 1),
-('geetha.mech@cit.edu', 'Substitute Request Accepted', 'Your substitute request has been accepted', 'sent', 1),
-('admin@cit.edu', 'System Alert: Failed Emails', '2 emails failed to send in the last hour', 'pending', 0);
 
 -- =====================================================================
 -- SAMPLE QUERIES FOR VERIFICATION
