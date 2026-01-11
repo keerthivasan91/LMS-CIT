@@ -19,7 +19,8 @@ const Profile = lazy(() => import("./pages/Profile"));
 const HODApproval = lazy(() => import("./pages/HODApproval"));
 const HODLeaveBalance = lazy(() => import("./pages/HODLeaveBalance"));
 const PrincipalApprovals = lazy(() => import("./pages/PrincipalApprovals"));
-const DeleteAdminUser = lazy(() => import("./pages/DeleteAdminUser"));
+const ViewUsersAdmin = lazy(() => import("./pages/ViewUsersAdmin"));
+const AdminUserProfile = lazy(() => import("./pages/AdminUserProfile"));
 
 // ProtectedRoute is NOT lazy anymore
 import ProtectedRoute from "./utils/ProtectedRoute";
@@ -143,13 +144,15 @@ const App = () => {
           />
 
           <Route
-            path="admin/delete-user"
+            path="admin/view-users"
             element={
               <ProtectedRoute allowed={["admin"]}>
-                <DeleteAdminUser />
+                <ViewUsersAdmin />
               </ProtectedRoute>
             }
           />
+
+          <Route path="/admin/users/:userId" element={<AdminUserProfile />} />
 
           <Route
             path="admin/reset-requests"
