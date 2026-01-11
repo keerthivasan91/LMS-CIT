@@ -268,7 +268,8 @@ INSERT INTO notifications (receiver_id, sender_id, message, type, status, relate
 UPDATE leave_balance SET 
     casual_used = 3,
     rh_used = 1,
-    earned_used = 2
+    earned_used = 2,
+    vl_used = 10
 WHERE user_id IN ('FAC001', 'FAC002', 'FAC003');
 
 UPDATE leave_balance SET 
@@ -317,7 +318,7 @@ INSERT INTO password_reset_requests (user_id, email, status, created_at) VALUES
 ('FAC005', 'priya.cse@cit.edu', 'pending', '2025-03-28 14:30:00'),
 ('FAC008', 'rahul.ece@cit.edu', 'resolved', '2025-03-25 10:15:00'),
 ('STAFF01', 'lakshmi.staff@cit.edu', 'pending', '2025-03-29 09:45:00'),
-('FAC003', 'deepa.cse@cit.edu', 'expired', '2025-03-20 16:20:00'),
+('FAC003', 'deepa.cse@cit.edu', 'pending', '2025-03-20 16:20:00'),
 ('STAFF12', 'shanthi.staff@cit.edu', 'pending', CURDATE());
 
 -- =====================================================================

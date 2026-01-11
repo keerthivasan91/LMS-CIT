@@ -17,7 +17,7 @@ CREATE TABLE users (
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('student', 'faculty', 'hod', 'principal', 'admin', 'staff') NOT NULL,
-  department_code VARCHAR(20) NOT NULL,
+  department_code VARCHAR(20) ,
   phone VARCHAR(20),
   designation VARCHAR(100),
   date_joined DATE,
@@ -51,7 +51,7 @@ CREATE TABLE leave_requests (
   leave_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id VARCHAR(50) NOT NULL,
   department_code VARCHAR(20) NOT NULL,
-  leave_type ENUM('Casual Leave', 'OOD', 'Earned Leave', 'Permitted Leave', 'Special Casual Leave','Loss of Pay Leave','Compensatory Off Leave') NOT NULL,
+  leave_type ENUM('Casual Leave', 'OOD', 'Earned Leave', 'Permitted Leave', 'Special Casual Leave','Loss of Pay Leave','Compensatory Off Leave','Maternity Leave','Vacation Leave') NOT NULL,
   start_date DATE NOT NULL,
   start_session ENUM('Forenoon','Afternoon') NOT NULL,
   end_date DATE NOT NULL,
@@ -161,6 +161,8 @@ CREATE TABLE leave_balance (
   earned_used INT DEFAULT 0,
   rh_total INT DEFAULT 0,
   rh_used INT DEFAULT 0,
+  vl_total INT DEFAULT 0,
+  vl_used INT DEFAULT 0,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
@@ -181,6 +183,9 @@ CREATE TABLE password_reset_requests (
     INDEX (status),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+DROP TRIGGER IF EXISTS trg_add_leave_balance;
+
 DELIMITER $$
 
 CREATE TRIGGER trg_add_leave_balance
@@ -190,27 +195,29 @@ BEGIN
     DECLARE casual INT DEFAULT 0;
     DECLARE earned INT DEFAULT 0;
     DECLARE rh INT DEFAULT 0;
+    DECLARE vl INT DEFAULT 0;
 
     -- Assign leave totals based on role
     IF NEW.role = 'faculty' THEN
         SET casual = 12;
         SET rh = 3;
         SET earned = 6;
-
+        SET vl = 15;
     ELSEIF NEW.role = 'hod' THEN
         SET casual = 12;
-        SET rh  = 3;
+        SET rh = 3;
         SET earned = 6;
-
+        SET vl = 15;
     ELSEIF NEW.role = 'staff' THEN
         SET casual = 10;
         SET rh = 3;
         SET earned = 4;
-
+        SET vl = 10;
     ELSEIF NEW.role IN ('admin', 'principal') THEN
         SET casual = 0;
         SET earned = 0;
         SET rh = 0;
+        SET vl = 0;
     END IF;
 
     INSERT INTO leave_balance (
@@ -218,22 +225,19 @@ BEGIN
         academic_year,
         casual_total, casual_used,
         rh_total, rh_used,
-        earned_total, earned_used
+        earned_total, earned_used,
+        vl_total, vl_used
     ) VALUES (
         NEW.user_id,
         YEAR(CURDATE()),
         casual, 0,
         rh, 0,
-        earned, 0
+        earned, 0,
+        vl, 0
     );
-
-END$$
+END $$
 
 DELIMITER ;
-
-
-
-
 
 CREATE TABLE mail_queue (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -259,4 +263,9 @@ CREATE TABLE mail_queue (
   INDEX idx_status_nextretry (status, next_retry_at),
   INDEX idx_processing_token (processing_token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_leave_user_date ON leave_requests(user_id, applied_on);
+CREATE INDEX idx_arrangement_sub ON arrangements(substitute_id);
+CREATE INDEX idx_users_search ON users(name, email, department_code);
+
 
