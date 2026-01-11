@@ -56,6 +56,8 @@ const LeaveForm = ({
         <option>Special Casual Leave</option>
         <option>Loss of Pay Leave</option>
         <option>Compensatory Off Leave</option>
+        <option>Maternity Leave</option>
+        <option>Vacation Leave</option>
       </select>
 
       {/* Dates */}
