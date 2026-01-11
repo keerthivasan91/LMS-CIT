@@ -279,6 +279,89 @@ async function getRecentActivity(limit = 10) {
   return rows;
 }
 
+/* ============================================================
+   GET USERS (SEARCH + DEPARTMENT + PAGINATION) — NEW
+============================================================ */
+async function getUsers({ search, department, limit, offset }) {
+  let where = "WHERE u.is_active = 1";
+  let params = [];
+
+  if (search) {
+    where += " AND (u.name LIKE ? OR u.email LIKE ? OR u.user_id LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+
+  if (department) {
+    where += " AND u.department_code = ?";
+    params.push(department);
+  }
+
+  // Total count
+  const [[{ total }]] = await pool.query(
+    `SELECT COUNT(*) AS total
+     FROM users u
+     ${where}`,
+    params
+  );
+
+  // Paginated data
+  const [users] = await pool.query(
+    `SELECT 
+        u.user_id,
+        u.name,
+        u.email,
+        u.role,
+        u.department_code,
+        u.designation,
+        d.department_name
+     FROM users u
+     LEFT JOIN departments d ON u.department_code = d.department_code
+     ${where}
+     ORDER BY u.department_code, u.role, u.name
+     LIMIT ? OFFSET ?`,
+    [...params, limit, offset]
+  );
+
+  return { users, total };
+}
+
+/* ============================================================
+   GET FULL USER PROFILE (ADMIN VIEW)
+============================================================ */
+async function getUserProfileById(user_id) {
+  const [[user]] = await pool.query(
+    `SELECT 
+        u.user_id,
+        u.name,
+        u.email,
+        u.role,
+        u.department_code,
+        d.department_name,
+        u.designation,
+        u.date_joined,
+        u.is_active,
+        lb.casual_total,
+        lb.casual_used,
+        lb.earned_total,
+        lb.earned_used,
+        lb.rh_total,
+        lb.rh_used,
+        lb.vl_total,
+        lb.vl_used
+     FROM users u
+     LEFT JOIN departments d ON u.department_code = d.department_code
+     LEFT JOIN leave_balance lb 
+       ON u.user_id = lb.user_id 
+      AND lb.academic_year = YEAR(CURDATE())
+     WHERE u.user_id = ?
+     LIMIT 1`,
+    [user_id]
+  );
+
+  return user;
+}
+
+
 module.exports = {
   getPrincipalPending,
   getInstitutionLeaves,
@@ -292,5 +375,7 @@ module.exports = {
   resetPasswordAndResolve,
   getDepartments,
   getAdminStats,
-  getRecentActivity
+  getRecentActivity,
+  getUsers,
+  getUserProfileById
 };
