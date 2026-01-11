@@ -33,6 +33,7 @@ async function insertLeaveRequest(conn, data) {
   let final_substitute_status = "pending";
   let hod_status = "pending";
   let principal_status = "pending";
+  let final_status = "pending";
 
   // ✅ ONLY condition for substitute auto-accept
   if (!hasSubstitutes) {
@@ -48,6 +49,7 @@ async function insertLeaveRequest(conn, data) {
   if (userRole === "principal") {
     hod_status = "approved";
     principal_status = "approved";
+    final_status = "approved";
   }
 
   const [res] = await conn.query(
@@ -60,7 +62,7 @@ async function insertLeaveRequest(conn, data) {
       hod_status,
       principal_status,
       final_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       user_id,
       department_code,
@@ -72,7 +74,8 @@ async function insertLeaveRequest(conn, data) {
       reason,
       final_substitute_status,
       hod_status,
-      principal_status
+      principal_status,
+      final_status
     ]
   );
 
@@ -402,7 +405,10 @@ async function getLeaveBalance(dept) {
           COALESCE(lb.rh_total, 2) - COALESCE(lb.rh_used, 0) as rh_remaining,
           COALESCE(lb.earned_total, 15) as earned_total,
           COALESCE(lb.earned_used, 0) as earned_used,
-          COALESCE(lb.earned_total, 15) - COALESCE(lb.earned_used, 0) as earned_remaining
+          COALESCE(lb.earned_total, 15) - COALESCE(lb.earned_used, 0) as earned_remaining,
+          COALESCE(lb.vacation_total, 30) as vacation_total,
+          COALESCE(lb.vacation_used, 0) as vacation_used,
+          COALESCE(lb.vacation_total, 30) - COALESCE(lb.vacation_used, 0) as vacation_remaining
        FROM users u
        LEFT JOIN leave_balance lb ON u.user_id = lb.user_id AND lb.academic_year = YEAR(CURDATE())
        WHERE u.department_code = ?
