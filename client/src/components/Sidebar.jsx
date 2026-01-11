@@ -67,7 +67,7 @@ const Sidebar = ({
           </NavLink>
         </li>
 
-        {!roleInfo.isPrincipal && (
+        {!roleInfo.isAdmin && (
           <li>
             <NavLink to="/apply">Apply For Leave</NavLink>
           </li>
@@ -77,7 +77,7 @@ const Sidebar = ({
           <NavLink to="/leave-history">Leave History</NavLink>
         </li>
 
-        {!roleInfo.isPrincipal && (
+        {(!roleInfo.isPrincipal && !roleInfo.isAdmin ) && (
           <li>
             <NavLink to="/substitute-requests">
               Substitute Requests
@@ -122,7 +122,7 @@ const Sidebar = ({
         {roleInfo.isAdmin && (
           <>
             <li><NavLink to="/admin/add-user">Add User</NavLink></li>
-            <li><NavLink to="/admin/delete-user">Delete User</NavLink></li>
+            <li><NavLink to="/admin/view-users">View Users</NavLink></li>
             <li><NavLink to="/admin/reset-requests">Password Reset Requests</NavLink></li>
           </>
         )}
