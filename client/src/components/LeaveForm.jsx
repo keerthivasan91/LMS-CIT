@@ -52,10 +52,9 @@ const LeaveForm = ({
         <option>Casual Leave</option>
         <option>Earned Leave</option>
         <option>OOD</option>
-        <option>Permitted Leave</option>
         <option>Special Casual Leave</option>
-        <option>Loss of Pay Leave</option>
-        <option>Compensatory Off Leave</option>
+        <option>Loss of Pay</option>
+        <option>Restricted Holiday</option>
         <option>Maternity Leave</option>
         <option>Vacation Leave</option>
       </select>
