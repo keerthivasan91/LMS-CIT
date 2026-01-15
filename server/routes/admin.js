@@ -11,7 +11,8 @@ const {
   approveBulk,
   rejectBulk,
   adminViewUsers,
-  adminViewUserProfile
+  adminViewUserProfile,
+  downloadLeaveHistory
 } = require("../controllers/adminController");
 
 const {
@@ -39,6 +40,12 @@ router.get(
   "/admin/users/:userId",
   sessionAuth(["admin"]),
   adminViewUserProfile
+);
+
+router.get(
+  "/leave-history/download",
+  sessionAuth(["admin", "principal"]),
+  downloadLeaveHistory
 );
 
 module.exports = router;

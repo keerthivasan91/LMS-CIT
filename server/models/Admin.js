@@ -162,10 +162,10 @@ async function getPendingPasswordResets() {
 ============================================================ */
 async function resetPasswordAndResolve(user_id, hashedPassword) {
   const connection = await pool.getConnection();
-  
+
   try {
     await connection.beginTransaction();
-    
+
     await connection.query(
       `UPDATE users SET password = ?, updated_at = NOW() 
        WHERE user_id = ?`,
@@ -178,7 +178,7 @@ async function resetPasswordAndResolve(user_id, hashedPassword) {
        WHERE user_id = ? AND status = 'pending'`,
       [user_id]
     );
-    
+
     await connection.commit();
     return true;
   } catch (error) {
@@ -317,7 +317,16 @@ async function getUsers({ search, department, limit, offset }) {
      FROM users u
      LEFT JOIN departments d ON u.department_code = d.department_code
      ${where}
-     ORDER BY u.department_code, u.role, u.name
+     ORDER BY
+      u.department_code,
+      CASE u.role
+        WHEN 'principal' THEN 0
+        WHEN 'hod' THEN 1
+        WHEN 'faculty' THEN 2
+        WHEN 'staff' THEN 3
+        ELSE 4
+      END,
+      u.name
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );
@@ -345,9 +354,7 @@ async function getUserProfileById(user_id) {
         lb.earned_total,
         lb.earned_used,
         lb.rh_total,
-        lb.rh_used,
-        lb.vl_total,
-        lb.vl_used
+        lb.rh_used
      FROM users u
      LEFT JOIN departments d ON u.department_code = d.department_code
      LEFT JOIN leave_balance lb 

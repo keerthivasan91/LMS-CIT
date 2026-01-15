@@ -4,6 +4,10 @@ const AdminModel = require("../models/Admin");
 const { sendMail } = require("../services/mail.service");
 const { leaveApproved, leaveRejected } = require("../services/mailTemplates/leave.templates");
 
+const LeaveReportService = require("../services/reports/leaveReport.service");
+const PdfService = require("../services/reports/pdf.service");
+const ExcelService = require("../services/reports/excel.service");
+
 /* ================= ADMIN DASHBOARD ================= */
 
 async function adminDashboard(req, res, next) {
@@ -184,6 +188,28 @@ async function rejectBulk(req, res, next) {
   }
 }
 
+async function downloadLeaveHistory(req, res) {
+  const { docType, department, startDate, endDate } = req.query;
+
+  const data = await LeaveReportService.getLeaveHistory({
+    department,
+    startDate,
+    endDate
+  });
+
+  if (docType === "pdf") {
+    return PdfService.generatePDF(res, data, { department, startDate, endDate });
+  }
+
+  if (docType === "excel") {
+    return ExcelService.generateExcel(res, data,{ department, startDate, endDate });
+  }
+
+  res.status(400).json({ message: "Invalid document type" });
+}
+
+
+
 
 /* ================= EXPORTS ================= */
 
@@ -194,5 +220,6 @@ module.exports = {
   approveBulk,
   rejectBulk,
   adminViewUsers,
-  adminViewUserProfile
+  adminViewUserProfile,
+  downloadLeaveHistory
 };
