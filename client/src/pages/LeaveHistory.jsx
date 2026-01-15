@@ -8,6 +8,50 @@ import "../App.css";
 const prettySession = (s) =>
   s?.toLowerCase().startsWith("f") ? "Forenoon" : "Afternoon";
 
+// Reusable Error Popup Component
+const ErrorPopup = ({ message, onClose }) => {
+  if (!message) return null;
+  
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '24px',
+        borderRadius: '8px',
+        maxWidth: '400px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }}>
+        <h3 style={{ marginTop: 0, color: '#dc3545' }}>Validation Error</h3>
+        <p style={{ marginBottom: '20px' }}>{message}</p>
+        <button 
+          onClick={onClose}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const LeaveHistory = () => {
   const { user } = useContext(AuthContext);
 
@@ -17,13 +61,19 @@ const LeaveHistory = () => {
   const [institutionLeaves, setInstitutionLeaves] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState("");
-  
+
   // --- INDEPENDENT PAGINATION STATES ---
   const [appliedPage, setAppliedPage] = useState(1);
   const [deptPage, setDeptPage] = useState(1);
   const [instPage, setInstPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState({ applied: 0, dept: 0, inst: 0 });
+
+  const [docType, setDocType] = useState("pdf");
+  const [downloadDept, setDownloadDept] = useState("ALL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const loadData = async () => {
     try {
@@ -36,7 +86,7 @@ const LeaveHistory = () => {
 
       // 1. Map Applied Leaves
       setApplied((data.applied_leaves || []).map(l => ({
-        id: l.leave_id,
+        id: l.user_id,
         type: l.leave_type,
         start_date: l.start_date,
         start_session: prettySession(l.start_session),
@@ -51,9 +101,9 @@ const LeaveHistory = () => {
         reason: l.reason
       })));
 
-      // 2. Map Substitute Requests (No mapping logic change needed, just use name from backend)
+      // 2. Map Substitute Requests
       setSubstituteRequests((data.substitute_requests || []).map(r => ({
-        id: r.leave_id,
+        id: r.user_id,
         requester: r.requester_name,
         reason: r.reason,
         status: r.substitute_status,
@@ -62,7 +112,7 @@ const LeaveHistory = () => {
 
       // 3. Map Dept Leaves
       setDeptLeaves((data.department_leaves || []).map(l => ({
-        id: l.leave_id,
+        id: l.user_id,
         requester: l.requester_name,
         designation: l.designation,
         type: l.leave_type,
@@ -78,7 +128,7 @@ const LeaveHistory = () => {
 
       // 4. Map Institution Leaves
       setInstitutionLeaves((data.institution_leaves || []).map(l => ({
-        id: l.leave_id,
+        id: l.user_id,
         requester: l.requester_name,
         department: l.dept_alias || l.department_code,
         designation: l.designation,
@@ -98,23 +148,76 @@ const LeaveHistory = () => {
         dept: data.pagination.dept_total_pages,
         inst: data.pagination.inst_total_pages
       });
-      
+
     } catch (err) {
       console.error("Failed to load history", err);
     }
   };
 
+  // Date range validation function
+  const validateDateRange = () => {
+    if (!startDate || !endDate) {
+      setErrorMessage("Please select both start and end date");
+      return false;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Check if end date is before start date
+    if (end < start) {
+      setErrorMessage("End date cannot be before start date");
+      return false;
+    }
+
+    // Check if range exceeds 1 year (365 days)
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 365) {
+      setErrorMessage("Date range cannot exceed 1 year (365 days)");
+      return false;
+    }
+
+    return true;
+  };
+
+  const downloadLeaveHistory = () => {
+    if (!validateDateRange()) {
+      return;
+    }
+
+    // Encode query parameters for safe URL construction
+    const params = new URLSearchParams({
+      docType: docType,
+      department: downloadDept,
+      startDate: startDate,
+      endDate: endDate
+    });
+
+    const url = `/api/leave-history/download?${params.toString()}`;
+
+    // Opens file download in new tab
+    window.open(url, "_blank");
+  };
+
+  // Check if download button should be disabled
+  const isDownloadDisabled =
+  !startDate ||
+  !endDate ||
+  new Date(endDate) < new Date(startDate);
+
   useEffect(() => {
     loadData();
   }, [appliedPage, deptPage, instPage, selectedDept]);
 
-  // --- REUSABLE PAGINATION COMPONENT (UI REMAINS UNCHANGED) ---
+  // --- REUSABLE PAGINATION COMPONENT ---
   const SectionPagination = ({ currentPage, total, onPageChange }) => {
     if (total <= 1) return null;
     return (
       <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '20px', gap: '10px' }}>
-        <button 
-          onClick={() => onPageChange(currentPage - 1)} 
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="btn-pagination"
         >
@@ -123,8 +226,8 @@ const LeaveHistory = () => {
         <span className="page-info">
           Page <strong>{currentPage}</strong> of <strong>{total}</strong>
         </span>
-        <button 
-          onClick={() => onPageChange(currentPage + 1)} 
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === total}
           className="btn-pagination"
         >
@@ -137,6 +240,9 @@ const LeaveHistory = () => {
   return (
     <div className="history-container">
       <h2>Leave History</h2>
+
+      {/* Error Popup */}
+      <ErrorPopup message={errorMessage} onClose={() => setErrorMessage("")} />
 
       {/* ================= USER APPLIED LEAVES ================= */}
       {user && user.role !== "admin" && (
@@ -166,10 +272,10 @@ const LeaveHistory = () => {
                   ))}
                 </tbody>
               </table>
-              <SectionPagination 
-                currentPage={appliedPage} 
-                total={totalPages.applied} 
-                onPageChange={setAppliedPage} 
+              <SectionPagination
+                currentPage={appliedPage}
+                total={totalPages.applied}
+                onPageChange={setAppliedPage}
               />
             </div>
           ) : (
@@ -178,7 +284,7 @@ const LeaveHistory = () => {
         </>
       )}
 
-      {/* ================= SUBSTITUTE REQUESTS (NO PAGINATION UI) ================= */}
+      {/* ================= SUBSTITUTE REQUESTS ================= */}
       {(isFaculty(user) || isStaff(user) || isAdmin(user)) && substituteRequests.length > 0 && (
         <>
           <h3 style={{ marginTop: 40, color: "#28a745" }}>Substitute Requests Assigned to You</h3>
@@ -226,10 +332,10 @@ const LeaveHistory = () => {
                   ))}
                 </tbody>
               </table>
-              <SectionPagination 
-                currentPage={deptPage} 
-                total={totalPages.dept} 
-                onPageChange={setDeptPage} 
+              <SectionPagination
+                currentPage={deptPage}
+                total={totalPages.dept}
+                onPageChange={setDeptPage}
               />
             </div>
           ) : (
@@ -242,6 +348,35 @@ const LeaveHistory = () => {
       {(isAdmin(user) || isPrincipal(user)) && (
         <>
           <h3 style={{ marginTop: 40, color: "#6f42c1" }}>Institution Leave History</h3>
+          {/* ================= DOWNLOAD FILTERS ================= */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+            <select value={docType} onChange={e => setDocType(e.target.value)}>
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+            </select>
+
+            <select value={downloadDept} onChange={e => setDownloadDept(e.target.value)}>
+              <option value="ALL">All Departments</option>
+              {departments.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+
+            <button 
+              onClick={downloadLeaveHistory} 
+              disabled={isDownloadDisabled}
+              className="action-accept"
+              style={{
+                opacity: isDownloadDisabled ? 0.5 : 1,
+                cursor: isDownloadDisabled ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Download
+            </button>
+          </div>
           <div style={{ marginBottom: 20 }}>
             <label>Filter by Department:</label>
             <select value={selectedDept} onChange={(e) => { setSelectedDept(e.target.value); setInstPage(1); }} style={{ marginLeft: 10, padding: "5px 8px" }}>
@@ -268,10 +403,10 @@ const LeaveHistory = () => {
                   ))}
                 </tbody>
               </table>
-              <SectionPagination 
-                currentPage={instPage} 
-                total={totalPages.inst} 
-                onPageChange={setInstPage} 
+              <SectionPagination
+                currentPage={instPage}
+                total={totalPages.inst}
+                onPageChange={setInstPage}
               />
             </div>
           ) : (
