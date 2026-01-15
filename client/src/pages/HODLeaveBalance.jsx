@@ -40,7 +40,6 @@ const HODLeaveBalance = () => {
                 <th>Casual (Used / Total)</th>
                 <th>Earned (Used / Total)</th>
                 <th>RH (Used / Total)</th>
-                <th>Remaining (Total)</th>
               </tr>
             </thead>
 
@@ -62,11 +61,6 @@ const HODLeaveBalance = () => {
                     {lb.rh_used} / {lb.rh_total}
                   </td>
 
-                  <td>
-                    {lb.casual_remaining +
-                      lb.rh_remaining +
-                      lb.earned_remaining}
-                  </td>
                 </tr>
               ))}
             </tbody>
