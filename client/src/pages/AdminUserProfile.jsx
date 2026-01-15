@@ -52,7 +52,6 @@ const AdminUserProfile = () => {
           <tr><td>CL Remaining</td><td>{user.casual_total - user.casual_used}</td></tr>
           <tr><td>EL Remaining</td><td>{user.earned_total - user.earned_used}</td></tr>
           <tr><td>RH Remaining</td><td>{user.rh_total - user.rh_used}</td></tr>
-          <tr><td>VL Remaining</td><td>{user.vl_total - user.vl_used}</td></tr>
         </tbody>
       </table>
     </div>
