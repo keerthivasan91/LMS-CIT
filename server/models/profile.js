@@ -46,7 +46,9 @@ async function updateUserPassword(user_id, hashedPassword) {
 
 async function getLeaveBalanceModel(user_id) {
   const [rows] = await pool.query(
-    `SELECT casual_total, earned_total, rh_total , vl_total
+    `SELECT (casual_total - casual_used) AS casual_remaining,
+            (earned_total - earned_used) AS earned_remaining,
+            (rh_total - rh_used) AS rh_remaining
      FROM leave_balance 
      WHERE user_id = ?`,
     [user_id]
