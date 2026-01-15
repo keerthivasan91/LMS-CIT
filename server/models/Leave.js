@@ -330,8 +330,7 @@ async function updatePrincipalStatus(leaveId, status) {
           const leaveTypeMap = {
             'Casual Leave': 'casual',
             'Earned Leave': 'earned',
-            'RH': 'rh',
-            'Optional Holiday': 'optional'
+            'Restricted Holiday': 'rh'
           };
 
           const field = leaveTypeMap[leave.leave_type] || 'casual';
@@ -406,13 +405,10 @@ async function getLeaveBalance(dept) {
           COALESCE(lb.earned_total, 15) as earned_total,
           COALESCE(lb.earned_used, 0) as earned_used,
           COALESCE(lb.earned_total, 15) - COALESCE(lb.earned_used, 0) as earned_remaining,
-          COALESCE(lb.vacation_total, 30) as vacation_total,
-          COALESCE(lb.vacation_used, 0) as vacation_used,
-          COALESCE(lb.vacation_total, 30) - COALESCE(lb.vacation_used, 0) as vacation_remaining
        FROM users u
        LEFT JOIN leave_balance lb ON u.user_id = lb.user_id AND lb.academic_year = YEAR(CURDATE())
        WHERE u.department_code = ?
-         AND u.role IN ('faculty', 'hod', 'staff', 'admin')
+         AND u.role IN ('faculty', 'hod', 'staff', 'principal')
          AND u.is_active = 1
        ORDER BY u.name`,
     [dept]
@@ -570,6 +566,21 @@ async function getUserLeaveBalance(user_id) {
   };
 }
 
+async function getFilteredLeaves({ department, startDate, endDate }) {
+  return db.query(
+    `
+    SELECT u.name, u.department, l.start_date, l.end_date
+    FROM leaves l
+    JOIN users u ON u.id = l.user_id
+    WHERE (? = 'ALL' OR u.department = ?)
+      AND l.start_date >= ?
+      AND l.end_date <= ?
+    `,
+    [department, department, startDate, endDate]
+  );
+}
+
+
 /* ========================================================================
    EXPORT
 ======================================================================== */
@@ -594,5 +605,6 @@ module.exports = {
   getPendingPrincipalRequests,
   getLeaveStatistics,
   getUserLeaveBalance,
-  normalizeSession
+  normalizeSession,
+  getFilteredLeaves
 };
