@@ -164,7 +164,7 @@ INSERT INTO leave_requests (user_id, department_code, leave_type, start_date, st
 ('FAC003', 'CSE', 'OOD', '2025-04-20', 'Forenoon', '2025-04-21', 'Afternoon', 'Conference attendance', 'pending', NULL, 'pending', '2025-03-30 11:45:00'),
 ('FAC006', 'ECE', 'Casual Leave', '2025-04-05', 'Afternoon', '2025-04-05', 'Afternoon', 'Personal work', 'pending', NULL, 'pending', '2025-03-27 14:20:00'),
 ('FAC010', 'MECH', 'Earned Leave', '2025-06-01', 'Forenoon', '2025-06-05', 'Afternoon', 'Summer vacation with family', 'pending', NULL, 'pending', '2025-05-20 10:00:00'),
-('FAC012', 'CIVIL', 'Permitted Leave', '2025-06-15', 'Forenoon', '2025-06-16', 'Forenoon', '1.5 days for house warming', 'pending', NULL, 'pending', '2025-06-01 14:15:00'),
+('FAC012', 'CIVIL', 'OOD', '2025-06-15', 'Forenoon', '2025-06-16', 'Forenoon', '1.5 days for house warming', 'pending', NULL, 'pending', '2025-06-01 14:15:00'),
 
 -- APPROVED REQUESTS (with HOD approval)
 ('FAC001', 'CSE', 'Casual Leave', '2025-03-10', 'Forenoon', '2025-03-10', 'Afternoon', 'Dentist appointment', 'approved', NULL, 'approved', '2025-03-05 09:30:00'),
@@ -172,6 +172,14 @@ INSERT INTO leave_requests (user_id, department_code, leave_type, start_date, st
 ('FAC007', 'ECE', 'Casual Leave', '2025-03-18', 'Forenoon', '2025-03-18', 'Afternoon', 'Vehicle service', 'approved', NULL, 'approved', '2025-03-10 11:40:00'),
 ('FAC009', 'MECH', 'Special Casual Leave', '2025-03-22', 'Forenoon', '2025-03-22', 'Afternoon', 'Wedding ceremony', 'approved', NULL, 'approved', '2025-03-15 14:25:00'),
 ('FAC011', 'CIVIL', 'Casual Leave', '2025-06-10', 'Afternoon', '2025-06-10', 'Afternoon', 'Half day for personal work', 'approved', NULL, 'approved', '2025-05-25 11:30:00'),
+('FAC014', 'ECE', 'Earned Leave', '2025-06-20', 'Forenoon', '2025-06-22', 'Afternoon', 'Traveling to hometown', 'approved', NULL, 'approved', '2025-06-05 09:50:00'),
+('FAC016', 'CSE', 'Casual Leave', '2025-06-25', 'Forenoon', '2025-06-25', 'Afternoon', 'Attending a workshop', 'approved', NULL, 'approved', '2025-06-10 10:40:00'),
+('FAC018', 'ECE', 'Special Casual Leave', '2025-06-30', 'Forenoon', '2025-06-30', 'Afternoon', 'Cultural event participation', 'approved', NULL, 'approved', '2025-06-15 13:55:00'),
+('FAC020', 'CHEM', 'Earned Leave', '2025-07-05', 'Forenoon', '2025-07-07', 'Afternoon', 'Family function out of town', 'approved', NULL, 'approved', '2025-06-20 09:10:00'),
+('FAC019', 'PHYSICS', 'Restricted Holiday', '2025-07-10', 'Afternoon', '2025-07-10', 'Afternoon', 'Personal errands', 'approved', NULL, 'approved', '2025-06-25 11:20:00'),
+('FAC015', 'MATH', 'OOD', '2025-07-15', 'Forenoon', '2025-07-16', 'Afternoon', 'Attending seminar at IIT Madras', 'approved', NULL, 'approved', '2025-07-01 10:05:00'),
+('FAC011', 'LIB', 'Vacation Leave', '2025-07-20', 'Forenoon', '2025-07-20', 'Afternoon', 'Medical appointment', 'approved', NULL, 'approved', '2025-07-05 14:30:00'),
+('FAC012', 'MGMT', 'Earned Leave', '2025-07-25', 'Forenoon', '2025-07-27', 'Afternoon', 'Attending a workshop in Bangalore', 'approved', NULL, 'approved', '2025-07-10 09:45:00'),
 
 -- REJECTED REQUESTS (with HOD rejection)
 ('FAC003', 'CSE', 'Casual Leave', '2025-03-25', 'Forenoon', '2025-03-26', 'Afternoon', 'Personal trip', 'rejected', NULL, 'rejected', '2025-03-20 08:45:00'),
@@ -221,7 +229,7 @@ INSERT INTO arrangements (leave_id, substitute_id, department_code, details, sta
 (13, 'FAC007', 'ECE', 'Cover EM theory classes on March 25-26', 'rejected', '2025-03-22 10:05:00'),
 
 -- CANCELLED substitute requests
-(14, 'FAC016', 'CSE', 'Network Security classes for cancelled leave', 'cancelled', '2025-03-01 09:20:00'),
+(14, 'FAC016', 'CSE', 'Network Security classes for cancelled leave', 'accepted', '2025-03-01 09:20:00'),
 
 -- CROSS-DEPARTMENT substitute arrangements
 (15, 'FAC019', 'PHYSICS', 'Cover Physics practical for CSE staff', 'accepted', '2025-03-28 14:45:00'),
@@ -268,8 +276,7 @@ INSERT INTO notifications (receiver_id, sender_id, message, type, status, relate
 UPDATE leave_balance SET 
     casual_used = 3,
     rh_used = 1,
-    earned_used = 2,
-    vl_used = 10
+    earned_used = 2
 WHERE user_id IN ('FAC001', 'FAC002', 'FAC003');
 
 UPDATE leave_balance SET 
