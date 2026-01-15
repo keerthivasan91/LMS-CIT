@@ -18,8 +18,7 @@ const Profile = () => {
   const [leaveBalance, setLeaveBalance] = useState({
     casual_total: 0,
     earned_total: 0,
-    rh_total: 0,
-    vl_total: 0,
+    rh_total: 0
   });
 
   // Load profile from context
@@ -73,10 +72,9 @@ const Profile = () => {
 
       <div className="leave-balance-card">
         <h3>Leave Balance</h3>
-        <p><strong>CL Remaining:</strong> {leaveBalance.casual_total}</p>
-        <p><strong>EL Remaining:</strong> {leaveBalance.earned_total}</p>
-        <p><strong>RH Remaining:</strong> {leaveBalance.rh_total}</p>
-        <p><strong>VL Remaining:</strong> {leaveBalance.vl_total}</p>
+        <p><strong>CL Remaining:</strong> {leaveBalance.casual_remaining}</p>
+        <p><strong>EL Remaining:</strong> {leaveBalance.earned_remaining}</p>
+        <p><strong>RH Remaining:</strong> {leaveBalance.rh_remaining}</p>
       </div>
     </div>
   );
