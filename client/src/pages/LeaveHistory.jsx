@@ -11,7 +11,7 @@ const prettySession = (s) =>
 // Reusable Error Popup Component
 const ErrorPopup = ({ message, onClose }) => {
   if (!message) return null;
-  
+
   return (
     <div style={{
       position: 'fixed',
@@ -34,7 +34,7 @@ const ErrorPopup = ({ message, onClose }) => {
       }}>
         <h3 style={{ marginTop: 0, color: '#dc3545' }}>Validation Error</h3>
         <p style={{ marginBottom: '20px' }}>{message}</p>
-        <button 
+        <button
           onClick={onClose}
           style={{
             padding: '8px 16px',
@@ -173,7 +173,7 @@ const LeaveHistory = () => {
     // Check if range exceeds 1 year (365 days)
     const diffTime = Math.abs(end - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays > 365) {
       setErrorMessage("Date range cannot exceed 1 year (365 days)");
       return false;
@@ -182,30 +182,53 @@ const LeaveHistory = () => {
     return true;
   };
 
-  const downloadLeaveHistory = () => {
-    if (!validateDateRange()) {
-      return;
-    }
+  const downloadLeaveHistory = async () => {
+    if (!validateDateRange()) return;
 
-    // Encode query parameters for safe URL construction
     const params = new URLSearchParams({
-      docType: docType,
+      docType,
       department: downloadDept,
-      startDate: startDate,
-      endDate: endDate
+      startDate,
+      endDate
     });
 
     const url = `/api/leave-history/download?${params.toString()}`;
 
-    // Opens file download in new tab
-    window.open(url, "_blank");
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include" // REQUIRED for session auth
+      });
+
+      if (!res.ok) throw new Error("Download failed");
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download =
+        docType === "pdf"
+          ? `leave-history-${downloadDept}-${startDate}_to_${endDate}.pdf`
+          : `leave-history-${downloadDept}-${startDate}_to_${endDate}.xlsx`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Unable to download leave history");
+    }
   };
+
 
   // Check if download button should be disabled
   const isDownloadDisabled =
-  !startDate ||
-  !endDate ||
-  new Date(endDate) < new Date(startDate);
+    !startDate ||
+    !endDate ||
+    new Date(endDate) < new Date(startDate);
 
   useEffect(() => {
     loadData();
@@ -365,8 +388,8 @@ const LeaveHistory = () => {
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
 
-            <button 
-              onClick={downloadLeaveHistory} 
+            <button
+              onClick={downloadLeaveHistory}
               disabled={isDownloadDisabled}
               className="action-accept"
               style={{
