@@ -128,6 +128,8 @@ function generatePDF(res, data, filters) {
     `attachment; filename="${filename}"`
   );
 
+  res.flushHeaders();
+
   doc.pipe(res);
 
   drawCollegeHeader(doc, filters);

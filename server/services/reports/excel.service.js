@@ -163,6 +163,8 @@ async function generateExcel(res, data, filters = {}) {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   );
 
+  res.flushHeaders();
+
   await workbook.xlsx.write(res);
   res.end();
 }
