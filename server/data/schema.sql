@@ -183,53 +183,6 @@ CREATE TABLE password_reset_requests (
 );
 
 DROP TRIGGER IF EXISTS trg_add_leave_balance;
-
-DELIMITER $$
-
-CREATE TRIGGER trg_add_leave_balance
-AFTER INSERT ON users
-FOR EACH ROW
-BEGIN
-    DECLARE casual INT DEFAULT 0;
-    DECLARE earned INT DEFAULT 0;
-    DECLARE rh INT DEFAULT 0;
-
-    -- Assign leave totals based on role
-    IF NEW.role = 'faculty' THEN
-        SET casual = 12;
-        SET rh = 3;
-        SET earned = 6;
-    ELSEIF NEW.role = 'hod' THEN
-        SET casual = 12;
-        SET rh = 3;
-        SET earned = 6;
-    ELSEIF NEW.role = 'staff' THEN
-        SET casual = 10;
-        SET rh = 3;
-        SET earned = 4;
-    ELSEIF NEW.role IN ('admin', 'principal') THEN
-        SET casual = 0;
-        SET earned = 0;
-        SET rh = 0;
-    END IF;
-
-    INSERT INTO leave_balance (
-        user_id,
-        academic_year,
-        casual_total, casual_used,
-        rh_total, rh_used,
-        earned_total, earned_used
-    ) VALUES (
-        NEW.user_id,
-        YEAR(CURDATE()),
-        casual, 0,
-        rh, 0,
-        earned, 0
-    );
-END $$
-
-DELIMITER ;
-
 CREATE TABLE mail_queue (
   id INT AUTO_INCREMENT PRIMARY KEY,
   to_email VARCHAR(255) NOT NULL,
