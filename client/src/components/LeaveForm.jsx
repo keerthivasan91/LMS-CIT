@@ -1,5 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import "../App.css";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/themes/material_blue.css";
+
 
 const LeaveForm = ({
   form,
@@ -8,15 +11,43 @@ const LeaveForm = ({
   role,
   departments = [],
   staffList = [],
-
-  // NEW props (correct row-wise lists)
   facultyArr1 = [],
   facultyArr2 = [],
   facultyArr3 = [],
   facultyArr4 = []
 }) => {
 
-  // Staff dropdown list
+  /* ========================================
+     BLOCKED DATES STATE + FETCH
+  ======================================== */
+  const [blockedDates, setBlockedDates] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/substitute/blocked-dates", {
+      credentials: "include"
+    })
+      .then(res => res.json())
+      .then(data => {
+        const disabled = [];
+
+        data.forEach(r => {
+          let d = new Date(r.start_date);
+          const end = new Date(r.end_date);
+
+          while (d <= end) {
+            disabled.push(new Date(d));
+            d.setDate(d.getDate() + 1);
+          }
+        });
+
+        setBlockedDates(disabled);
+      })
+      .catch(err => console.error("Blocked dates fetch failed", err));
+  }, []);
+
+  /* ========================================
+     DROPDOWN OPTIONS
+  ======================================== */
   const staffOptions = useMemo(
     () =>
       staffList.map((s) => (
@@ -27,7 +58,6 @@ const LeaveForm = ({
     [staffList]
   );
 
-  // Department dropdown list
   const departmentOptions = useMemo(
     () =>
       departments.map((d) => (
@@ -37,10 +67,22 @@ const LeaveForm = ({
       )),
     [departments]
   );
+  function formatLocalDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
 
+
+  /* ========================================
+     RENDER
+  ======================================== */
   return (
     <form onSubmit={onSubmit}>
-
+      <p style={{ color: "red", fontSize: "15px" }}>
+        ⛔ Leave cannot be applied on dates where substitution is accepted
+      </p>
       {/* Leave Type */}
       <label>Leave Type</label>
       <select
@@ -59,39 +101,65 @@ const LeaveForm = ({
         <option>Vacation Leave</option>
       </select>
 
-      {/* Dates */}
+      {/* ================= DATES ================= */}
+
       <label>Start Date</label>
-      <input
-        type="date"
-        name="start_date"
-        value={form.start_date}
-        onChange={onChange}
-        required
-        min={new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0]}
+      <Flatpickr
+        value={form.start_date ? new Date(form.start_date) : null}
+        options={{
+          dateFormat: "d-m-Y",
+          minDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          disable: blockedDates
+        }}
+        onChange={([date]) =>
+          onChange({
+            target: {
+              name: "start_date",
+              value: formatLocalDate(date) // ✅ NO timezone shift
+            }
+          })
+        }
       />
 
+
+
       <label>Start Session</label>
-      <select name="start_session" value={form.start_session} onChange={onChange}>
+      <select
+        name="start_session"
+        value={form.start_session}
+        onChange={onChange}
+      >
         <option value="Forenoon">Forenoon</option>
         <option value="Afternoon">Afternoon</option>
       </select>
 
       <label>End Date</label>
-      <input
-        type="date"
-        name="end_date"
-        value={form.end_date}
-        onChange={onChange}
-        required
-        min={new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0]}
+      <Flatpickr
+        value={form.end_date ? new Date(form.end_date) : null}
+        options={{
+          dateFormat: "d-m-Y",
+          minDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          disable: blockedDates
+        }}
+        onChange={([date]) =>
+          onChange({
+            target: {
+              name: "end_date",
+              value: formatLocalDate(date)
+            }
+          })
+        }
       />
 
+
+
+
       <label>End Session</label>
-      <select name="end_session" value={form.end_session} onChange={onChange}>
+      <select
+        name="end_session"
+        value={form.end_session}
+        onChange={onChange}
+      >
         <option value="Forenoon">Forenoon</option>
         <option value="Afternoon">Afternoon</option>
       </select>
@@ -102,13 +170,12 @@ const LeaveForm = ({
         name="reason"
         value={form.reason}
         onChange={onChange}
-        placeholder="Enter reason for leave"
         required
       />
 
-      {/* ======================================== */}
-      {/*         ARRANGEMENTS SECTION             */}
-      {/* ======================================== */}
+      {/* ========================================
+         ARRANGEMENTS SECTION
+      ======================================== */}
       <h3>Alternate Arrangements Made</h3>
 
       <div className="arr-table">
@@ -127,20 +194,17 @@ const LeaveForm = ({
           <div className="arr-col">Arrangement Details</div>
         </div>
 
-        {/* ---------------- ROWS 1–4 ---------------- */}
         {[1, 2, 3, 4].map((i) => {
-          // Select the correct faculty list per row
           const facultyListForRow =
             i === 1 ? facultyArr1 :
-            i === 2 ? facultyArr2 :
-            i === 3 ? facultyArr3 :
-                      facultyArr4;
+              i === 2 ? facultyArr2 :
+                i === 3 ? facultyArr3 :
+                  facultyArr4;
 
           return (
             <div className="arr-row" key={i}>
               <div className="arr-col">{i}</div>
 
-              {/* STAFF MODE */}
               {(role === "staff" || role === "admin") && (
                 <div className="arr-col">
                   <select
@@ -154,10 +218,8 @@ const LeaveForm = ({
                 </div>
               )}
 
-              {/* FACULTY / HOD MODE */}
               {role !== "staff" && role !== "admin" && (
                 <>
-                  {/* Department */}
                   <div className="arr-col">
                     <select
                       name={`arr${i}_dept`}
@@ -169,7 +231,6 @@ const LeaveForm = ({
                     </select>
                   </div>
 
-                  {/* Substitute Faculty */}
                   <div className="arr-col">
                     <select
                       name={`arr${i}_faculty`}
@@ -177,7 +238,6 @@ const LeaveForm = ({
                       onChange={onChange}
                     >
                       <option value="">Choose Faculty...</option>
-
                       {facultyListForRow.map((f) => (
                         <option key={f.user_id} value={f.user_id}>
                           {f.name}
@@ -188,13 +248,11 @@ const LeaveForm = ({
                 </>
               )}
 
-              {/* Arrangement Details */}
               <div className="arr-col">
                 <textarea
                   name={`arr${i}_details`}
                   value={form[`arr${i}_details`] || ""}
                   onChange={onChange}
-                  placeholder="Enter arrangement details..."
                 />
               </div>
             </div>
