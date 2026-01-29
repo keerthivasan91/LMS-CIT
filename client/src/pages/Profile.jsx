@@ -37,7 +37,7 @@ const Profile = () => {
   const loadLeaveBalance = async () => {
     try {
       const res = await axios.get("/leave-balance"); 
-      setLeaveBalance(res.data.leaveBalance);
+      setLeaveBalance(res.data.balance);
       console.log("Rendering leave balance:", leaveBalance);
     } catch (err) {
       console.error("Error fetching leave balance", err);
@@ -72,9 +72,9 @@ const Profile = () => {
 
       <div className="leave-balance-card">
         <h3>Leave Balance</h3>
-        <p><strong>CL Remaining:</strong> {leaveBalance.casual_remaining}</p>
-        <p><strong>EL Remaining:</strong> {leaveBalance.earned_remaining}</p>
-        <p><strong>RH Remaining:</strong> {leaveBalance.rh_remaining}</p>
+        <p><strong>CL Remaining:</strong> {leaveBalance.casual_total - leaveBalance.casual_used}</p>
+        <p><strong>EL Remaining:</strong> {leaveBalance.earned_total - leaveBalance.earned_used}</p>
+        <p><strong>RH Remaining:</strong> {leaveBalance.rh_total - leaveBalance.rh_used}</p>
       </div>
     </div>
   );
