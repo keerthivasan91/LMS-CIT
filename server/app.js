@@ -96,11 +96,6 @@ app.use(morgan("combined",{
   skip: (req) => req.method === "GET" && req.url === "/"
 }));
 
-app.all("/", (req, res) => {
-  res.sendStatus(404);
-});
-
-
 // API routes
 app.use("/api", changePasswordRoutes);
 app.use("/api", forgotPasswordRoutes);
@@ -190,6 +185,11 @@ app.get("/health", async (req, res) => {
   res.status(criticalHealthy ? 200 : 503).json(healthcheck);
 });
 
+
+// AFTER all app.use("/api", ...) routes
+app.all("/", (req, res) => {
+  res.sendStatus(404);
+});
 
 app.use(errorHandler);
 

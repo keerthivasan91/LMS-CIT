@@ -5,10 +5,12 @@
     const {
     substituteRequestsForUser,
     acceptSubstitute,
-    rejectSubstitute
+    rejectSubstitute,
+    getBlockedDates
     } = require("../controllers/substituteController");
 
     router.get("/requests",sessionAuth(), substituteRequestsForUser);
+    router.get("/blocked-dates", sessionAuth(), getBlockedDates);
     router.post("/accept/:arrangementId", sessionAuth(), acceptSubstitute);
     router.post("/reject/:arrangementId", sessionAuth(), rejectSubstitute);
 
