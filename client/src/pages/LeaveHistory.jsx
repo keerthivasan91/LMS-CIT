@@ -82,7 +82,7 @@ const LeaveHistory = () => {
         `/leave_history?appliedPage=${appliedPage}&deptPage=${deptPage}&instPage=${instPage}&limit=${limit}${selectedDept ? `&department=${selectedDept}` : ""}`
       );
 
-      const data = res.data;
+      const {data} = res;
 
       // 1. Map Applied Leaves
       setApplied((data.applied_leaves || []).map(l => ({
