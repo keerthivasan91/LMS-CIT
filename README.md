@@ -60,147 +60,194 @@ A comprehensive web-based Leave Management System designed for educational insti
 ```
 LMS-CIT/
 │
-├── client/                     # Frontend (React.js)
-│   ├── public/
-│   │   ├── index.html
-│   │   ├── favicon.ico
-│   │   └── logo.png
-│   │
-│   ├── src/
-│   │   ├── api/
-│   │   │   └── axiosConfig.js  # Axios setup with credentials
-│   │   │
-│   │   ├── components/         # Reusable UI components
-│   │   │   ├── Layout.jsx      # Main layout wrapper
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   ├── LeaveForm.jsx
-│   │   │   └── NotificationBell.jsx
-│   │   │
-│   │   ├── pages/              # Route pages
-│   │   │   ├── Login.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── ApplyLeave.jsx
-│   │   │   ├── LeaveHistory.jsx
-│   │   │   ├── SubstituteRequests.jsx
-│   │   │   ├── Holidays.jsx
-│   │   │   ├── Profile.jsx
-│   │   │   ├── ChangePassword.jsx
-│   │   │   ├── HODApproval.jsx
-│   │   │   ├── HODLeaveBalance.jsx
-│   │   │   ├── PrincipalApprovals.jsx
-│   │   │   ├── AdminAddUser.jsx
-│   │   │   ├── DeleteAdminUser.jsx
-│   │   │   └── AdminResetRequests.jsx
-│   │   │
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx # Session management
-│   │   │
-│   │   ├── utils/
-│   │   │   ├── dateFormatter.js
-│   │   │   ├── roles.js
-│   │   │   └── ProtectedRoute.jsx
-│   │   │
-│   │   ├── App.css             # Global styles
-│   │   ├── App.jsx             # Root component
-│   │   └── main.jsx            # React entry point
-│   │
-│   ├── package.json
-│   ├── .env                    # Frontend API base URL
-│   └── vite.config.js
-│
-├── server/                     # Backend (Express + MySQL)
-│   ├── app.js                  # Express app setup
-│   ├── server.js               # Server start file
-│   ├── package.json
-│   ├── .env                    # Secrets & DB credentials
-│   │
-│   ├── config/
-│   │   ├── db.js               # MySQL connection pool
-│   │   ├── mailer.js           # Nodemailer + Queue system
-│   │   └── sms.js              # Twilio SMS
-│   │
-│   ├── routes/
-│   │   ├── auth.js             # Login, logout, /me
-│   │   ├── branches.js         # Departments & faculty lists
-│   │   ├── leave.js            # Apply, history
-│   │   ├── substitute.js       # Accept/reject requests
-│   │   ├── hod.js              # HOD approvals
-│   │   ├── admin.js            # Principal approvals
-│   │   ├── profile.js          # User profile & balance
-│   │   ├── holiday.js          # Holiday calendar
-│   │   ├── changepassword.js   # User password change
-│   │   ├── forgotpassword.js   # Password reset request
-│   │   └── notifications.js    # Notification counters
-│   │
-│   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── leaveController.js
-│   │   ├── hodController.js
-│   │   ├── adminController.js
-│   │   ├── profileController.js
-│   │   ├── substituteController.js
-│   │   ├── branchController.js
-│   │   ├── holidaycontroller.js
-│   │   ├── notificationController.js
-│   │   ├── changePasswordController.js
-│   │   ├── forgotPasswordRequest.js
-│   │   ├── adminAddUser.js
-│   │   ├── adminDeleteUser.js
-│   │   └── adminResetPassword.js
-│   │
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── Leave.js
-│   │   ├── Admin.js
-│   │   └── profile.js
-│   │
-│   ├── middleware/
-│   │   ├── authMiddleware.js   # Session-based auth
-│   │   ├── errorHandler.js
-│   │   └── rateLimit.js
-│   │
-│   ├── services/
-│   │   ├── hodService.js       # HOD business logic
-│   │   └── logger.js           # Winston logger
-│   │
-│   ├── utils/
-│   │   ├── constants.js
-│   │   ├── validators.js
-│   │   ├── formatters.js
-│   │   ├── sqlHelpers.js
-│   │   └── mailQueue.js        # Email queueing
-│   │
-│   ├── workers/
-│   │   └── mailWorker.js       # Background email sender
-│   │
-│   ├── data/
-│   │   ├── schema.sql          # Database schema
-│   │   └── seed.sql            # Sample data
-│   │
-│   ├── tests/
-│   │   ├── auth.test.js
-│   │   ├── leave.test.js
-│   │   ├── hod.test.js
-│   │   ├── setup.js
-│   │   ├── globalTeardown.js
-│   │   ├── Unit/
-│   │   │   ├── adminAddUser.unit.test.js
-│   │   │   └── sessionAuth.unit.test.js
-│   │   └── integration/
-│   │       ├── auth.int.test.js
-│   │       └── adminRoutes.int.test.js
-│   │
-│   └── logs/                   # Winston logs
-│       ├── access.log
-│       └── error.log
+├── README.md
+├── .gitignore
+├── docker-compose.yml
 │
 ├── nginx/
-│   └── nginx.conf              # Reverse proxy config
+│   └── nginx.conf
 │
-├── docker-compose.yml
-├── .gitignore
-└── README.md
+├── client/                              # React Frontend
+│   ├── .gitignore
+│   ├── README.md
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── eslint.config.js
+│   │
+│   ├── public/
+│   │   ├── favicon.ico
+│   │   ├── logo.png
+│   │   └── image.png
+│   │
+│   └── src/
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── App.css
+│       │
+│       ├── api/
+│       │   └── axiosConfig.js
+│       │
+│       ├── components/
+│       │   ├── Fallbacks.jsx
+│       │   ├── Footer.jsx
+│       │   ├── Layout.jsx
+│       │   ├── LeaveForm.jsx
+│       │   ├── Navbar.jsx
+│       │   ├── NotificationBell.jsx
+│       │   ├── PrefetchLink.jsx
+│       │   └── Sidebar.jsx
+│       │
+│       ├── context/
+│       │   ├── AuthContext.jsx
+│       │   └── SnackbarContext.jsx
+│       │
+│       ├── pages/
+│       │   ├── AdminAddUser.jsx
+│       │   ├── AdminResetRequests.jsx
+│       │   ├── AdminUserProfile.jsx
+│       │   ├── ApplyLeave.jsx
+│       │   ├── ChangePassword.jsx
+│       │   ├── Dashboard.jsx
+│       │   ├── HODApproval.jsx
+│       │   ├── HODLeaveBalance.jsx
+│       │   ├── Holidays.jsx
+│       │   ├── LeaveHistory.jsx
+│       │   ├── Login.jsx
+│       │   ├── PrincipalApprovals.jsx
+│       │   ├── Profile.jsx
+│       │   ├── SubstituteRequests.jsx
+│       │   └── ViewUsersAdmin.jsx
+│       │
+│       ├── utils/
+│       │   ├── dateFormatter.js
+│       │   ├── lazyWithPreload.js
+│       │   ├── ProtectedRoute.jsx
+│       │   └── roles.js
+│       │
+│       └── assets/
+│           └── react.svg
+│
+└── server/                              # Express Backend
+    ├── .env
+    ├── package.json
+    ├── server.js
+    ├── app.js
+    ├── Dockerfile
+    ├── jest.config.js
+    ├── migratePasswords.js
+    │
+    ├── config/
+    │   ├── db.js
+    │   ├── mailer.js
+    │   └── sms.js
+    │
+    ├── controllers/
+    │   ├── adminAddUser.js
+    │   ├── adminController.js
+    │   ├── adminDeleteUser.js
+    │   ├── adminResetPassword.js
+    │   ├── authController.js
+    │   ├── branchController.js
+    │   ├── changePasswordController.js
+    │   ├── forgotPasswordRequest.js
+    │   ├── hodController.js
+    │   ├── holidaycontroller.js
+    │   ├── leaveBalanceController.js
+    │   ├── leaveController.js
+    │   ├── notificationController.js
+    │   ├── profileController.js
+    │   └── substituteController.js
+    │
+    ├── middleware/
+    │   ├── authMiddleware.js
+    │   ├── errorHandler.js
+    │   └── rateLimit.js
+    │
+    ├── models/
+    │   ├── Admin.js
+    │   ├── Leave.js
+    │   ├── profile.js
+    │   └── User.js
+    │
+    ├── routes/
+    │   ├── admin.js
+    │   ├── auth.js
+    │   ├── branches.js
+    │   ├── changepassword.js
+    │   ├── forgotpassword.js
+    │   ├── hod.js
+    │   ├── holiday.js
+    │   ├── leave.js
+    │   ├── notifications.js
+    │   ├── profile.js
+    │   └── substitute.js
+    │
+    ├── services/
+    │   ├── hodService.js
+    │   ├── logger.js
+    │   ├── mail.service.js
+    │   │
+    │   ├── leave/
+    │   │   ├── leaveApply.service.js
+    │   │   ├── leaveBalance.service.js
+    │   │   ├── leaveCredit.service.js
+    │   │   ├── leaveDeduction.service.js
+    │   │   └── leaveValidation.service.js
+    │   │
+    │   ├── mailTemplates/
+    │   │   ├── auth.templates.js
+    │   │   ├── leave.templates.js
+    │   │   ├── substitute.templates.js
+    │   │   └── user.templates.js
+    │   │
+    │   └── reports/
+    │       ├── adminStats.service.js
+    │       ├── excel.service.js
+    │       ├── leaveReport.service.js
+    │       └── pdf.service.js
+    │
+    ├── workers/
+    │   └── mailWorker.js
+    │
+    ├── utils/
+    │   ├── constants.js
+    │   ├── formatters.js
+    │   ├── mailQueue.js
+    │   ├── sqlHelpers.js
+    │   └── validators.js
+    │
+    ├── policies/
+    │   └── leave.policy.js
+    │
+    ├── data/
+    │   ├── schema.sql
+    │   └── seed.sql
+    │
+    ├── assets/
+    │   └── cit-logo.png
+    │
+    ├── logs/
+    │   ├── access.log
+    │   └── error.log
+    │
+    ├── cron/
+    │   └── yearlyLeaveCredit.js
+    │
+    └── tests/
+        ├── setup.js
+        ├── globalTeardown.js
+        ├── auth.test.js
+        ├── leave.test.js
+        ├── hod.test.js
+        │
+        ├── Unit/
+        │   ├── adminAddUser.unit.test.js
+        │   └── sessionAuth.unit.test.js
+        │
+        └── integration/
+            ├── adminRoutes.int.test.js
+            └── auth.int.test.js
 ```
 
 ## 🚀 Quick Start
