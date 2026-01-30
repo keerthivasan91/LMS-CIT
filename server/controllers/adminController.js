@@ -1,8 +1,15 @@
 // controllers/adminController.js
 
+const pool = require("../config/db");
 const AdminModel = require("../models/Admin");
+const LeaveModel = require("../models/Leave");
+
+const leaveBalance = require("../services/leave/leaveBalance.service");
 const { sendMail } = require("../services/mail.service");
-const { leaveApproved, leaveRejected } = require("../services/mailTemplates/leave.templates");
+const {
+  leaveApproved,
+  leaveRejected
+} = require("../services/mailTemplates/leave.templates");
 
 const LeaveReportService = require("../services/reports/leaveReport.service");
 const PdfService = require("../services/reports/pdf.service");
@@ -16,10 +23,10 @@ async function adminDashboard(req, res, next) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const selectedDepartment = req.query.department || null;
+    const department = req.query.department || null;
 
     const requests = await AdminModel.getPrincipalPending();
-    const institution_leaves = await AdminModel.getInstitutionLeaves(selectedDepartment);
+    const institution_leaves = await AdminModel.getInstitutionLeaves(department);
 
     res.json({ requests, institution_leaves });
   } catch (err) {
@@ -27,32 +34,75 @@ async function adminDashboard(req, res, next) {
   }
 }
 
-/* ================= APPROVE / REJECT ================= */
+/* ================= PRINCIPAL APPROVAL ================= */
 
 async function approvePrincipal(req, res, next) {
-  try {
-    const leaveId = req.params.rid;
-    const applicant = await AdminModel.getApplicantEmail(leaveId);
-    if (!applicant) return res.status(404).json({ message: "Leave not found" });
+  const leaveId = req.params.rid;
+  const conn = await pool.getConnection();
 
-    await AdminModel.approveLeavePrincipal(leaveId);
+  try {
+    await conn.beginTransaction();
+
+    const leave = await LeaveModel.getLeaveById(leaveId);
+    if (!leave) {
+      conn.release();
+      return res.status(404).json({ message: "Leave not found" });
+    }
+
+    const academic_year = new Date(leave.start_date).getFullYear();
+
+    // 1️⃣ Ensure balance row exists
+    await leaveBalance.ensureBalanceRow({
+      conn,
+      user_id: leave.user_id,
+      role: leave.requester_role,
+      academic_year
+    });
+
+
+    // 3️⃣ Approve leave
+    await AdminModel.approveLeavePrincipalTx(conn, leaveId);
+
+    // 4️⃣ Deduct balance
+    await leaveBalance.deduct({
+      conn,
+      user_id: leave.user_id,
+      leave_type: leave.leave_type,
+      days: leave.days,
+      academic_year
+    });
+
+    await conn.commit();
     res.json({ ok: true });
 
+    // Mail AFTER commit
     await sendMail({
-      to: applicant.email,
+      to: leave.requester_email,
       subject: "Leave Approved By Principal",
-      html: leaveApproved({ name: applicant.name, leaveId })
+      html: leaveApproved({
+        name: leave.requester_name,
+        leaveId
+      })
     });
+
   } catch (err) {
+    await conn.rollback();
     next(err);
+  } finally {
+    conn.release();
   }
 }
+
+/* ================= PRINCIPAL REJECTION ================= */
 
 async function rejectPrincipal(req, res, next) {
   try {
     const leaveId = req.params.rid;
     const applicant = await AdminModel.getApplicantEmail(leaveId);
-    if (!applicant) return res.status(404).json({ message: "Leave not found" });
+
+    if (!applicant) {
+      return res.status(404).json({ message: "Leave not found" });
+    }
 
     await AdminModel.rejectLeavePrincipal(leaveId);
     res.json({ ok: true });
@@ -60,14 +110,101 @@ async function rejectPrincipal(req, res, next) {
     await sendMail({
       to: applicant.email,
       subject: "Leave Rejected By Principal",
-      html: leaveRejected({ name: applicant.name, leaveId })
+      html: leaveRejected({
+        name: applicant.name,
+        leaveId
+      })
     });
+
   } catch (err) {
     next(err);
   }
 }
 
-/* ================= VIEW USERS ================= */
+/* ================= BULK APPROVAL ================= */
+
+async function approveBulk(req, res, next) {
+  const { leaveIds } = req.body;
+  const conn = await pool.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    for (const leaveId of leaveIds) {
+      const leave = await LeaveModel.getLeaveById(leaveId);
+      if (!leave) continue;
+
+      const academic_year = new Date(leave.start_date).getFullYear();
+
+      await leaveBalance.ensureBalanceRow({
+        conn,
+        user_id: leave.user_id,
+        role: leave.requester_role,
+        academic_year
+      });
+
+
+      await AdminModel.approveLeavePrincipalTx(conn, leaveId);
+
+      await leaveBalance.deduct({
+        conn,
+        user_id: leave.user_id,
+        leave_type: leave.leave_type,
+        days: leave.days,
+        academic_year
+      });
+    }
+
+    await conn.commit();
+    res.json({ ok: true });
+
+  } catch (err) {
+    await conn.rollback();
+    next(err);
+  } finally {
+    conn.release();
+  }
+}
+
+/* ================= BULK REJECT ================= */
+
+async function rejectBulk(req, res, next) {
+  try {
+    const { leaveIds } = req.body;
+
+    for (const leaveId of leaveIds) {
+      await AdminModel.rejectLeavePrincipal(leaveId);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/* ================= REPORTS ================= */
+
+async function downloadLeaveHistory(req, res) {
+  const { docType, department, startDate, endDate } = req.query;
+
+  const data = await LeaveReportService.getLeaveHistory({
+    department,
+    startDate,
+    endDate
+  });
+
+  if (docType === "pdf") {
+    return PdfService.generatePDF(res, data, { department, startDate, endDate });
+  }
+
+  if (docType === "excel") {
+    return ExcelService.generateExcel(res, data, { department, startDate, endDate });
+  }
+
+  res.status(400).json({ message: "Invalid document type" });
+}
+
+/* ================= USERS ================= */
 
 async function adminViewUsers(req, res, next) {
   try {
@@ -104,21 +241,14 @@ async function adminViewUsers(req, res, next) {
   }
 }
 
-
-/* ================= VIEW USER PROFILE ================= */
-
 async function adminViewUserProfile(req, res, next) {
   try {
     if (req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
 
-    const userId = req.params.userId;
-    const user = await AdminModel.getUserProfileById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const user = await AdminModel.getUserProfileById(req.params.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({ user });
   } catch (err) {
@@ -126,92 +256,7 @@ async function adminViewUserProfile(req, res, next) {
   }
 }
 
-async function approveBulk(req, res, next) {
-  try {
-    const { leaveIds } = req.body;
-
-    for (const leaveId of leaveIds) {
-      // 1. Approve leave
-      await AdminModel.approveLeavePrincipal(leaveId);
-
-      // 2. Get applicant details
-      const applicant = await AdminModel.getApplicantEmail(leaveId);
-
-      // 3. Send mail
-      if (applicant?.email) {
-        await sendMail({
-          to: applicant.email,
-          subject: "Leave Approved By Principal",
-          html: leaveApproved({
-            name: applicant.name,
-            leaveId
-          })
-        });
-      }
-    }
-
-    res.json({ ok: true });
-
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function rejectBulk(req, res, next) {
-  try {
-    const { leaveIds } = req.body;
-
-    for (const leaveId of leaveIds) {
-      // 1. Reject leave
-      await AdminModel.rejectLeavePrincipal(leaveId);
-
-      // 2. Get applicant details
-      const applicant = await AdminModel.getApplicantEmail(leaveId);
-
-      // 3. Send mail
-      if (applicant?.email) {
-        await sendMail({
-          to: applicant.email,
-          subject: "Leave Rejected By Principal",
-          html: leaveRejected({
-            name: applicant.name,
-            leaveId
-          })
-        });
-      }
-    }
-
-    res.json({ ok: true });
-
-  } catch (err) {
-    next(err);
-  }
-}
-
-async function downloadLeaveHistory(req, res) {
-  const { docType, department, startDate, endDate } = req.query;
-
-  const data = await LeaveReportService.getLeaveHistory({
-    department,
-    startDate,
-    endDate
-  });
-
-  if (docType === "pdf") {
-    return PdfService.generatePDF(res, data, { department, startDate, endDate });
-  }
-
-  if (docType === "excel") {
-    return ExcelService.generateExcel(res, data,{ department, startDate, endDate });
-  }
-
-  res.status(400).json({ message: "Invalid document type" });
-}
-
-
-
-
-/* ================= EXPORTS ================= */
+/* ================= EXPORT ================= */
 
 module.exports = {
   adminDashboard,
