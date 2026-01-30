@@ -1,30 +1,36 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
-const sessionAuth = require('../middleware/authMiddleware');
+const sessionAuth = require("../middleware/authMiddleware");
 
-const { 
-  applyLeave, 
-  leaveHistory 
-} = require('../controllers/leaveController');
+const {
+  applyLeave,
+  leaveHistory
+} = require("../controllers/leaveController");
 
-const { getLeaveBalance } = require('../controllers/profileController');
+const { getLeaveBalance } = require("../controllers/leaveBalanceController");
 
-// Apply for leave → only faculty, staff, hod
+/* ================= LEAVE ROUTES ================= */
+
+// Apply for leave → faculty, staff, hod only
 router.post(
-  '/leave/apply',
-  sessionAuth(["faculty","staff","hod"]),
+  "/leave/apply",
+  sessionAuth(["faculty", "staff", "hod", "principal"]),
   applyLeave
 );
 
-// Fetch leave history (auth required)
+// View own leave history
 router.get(
-  '/leave/history',
+  "/leave_history",
   sessionAuth(),
   leaveHistory
 );
 
-router.get('/leave-balance', sessionAuth(), getLeaveBalance);
-
+// View own leave balance (policy-based)
+router.get(
+  "/leave-balance",
+  sessionAuth(),
+  getLeaveBalance
+);
 
 module.exports = router;
