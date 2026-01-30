@@ -280,6 +280,34 @@ async function rejectSubstitute(req, res, next) {
   }
 }
 
+// controllers/substitution.controller.js
+
+async function getBlockedDates(req, res) {
+  try {
+    const facultyId = req.user.user_id;
+
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        lr.start_date,
+        lr.end_date
+      FROM arrangements a
+      JOIN leave_requests lr 
+        ON a.leave_id = lr.leave_id
+      WHERE a.substitute_id = ?
+        AND a.status = 'accepted'
+      `,
+      [facultyId]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("BLOCKED DATES ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch blocked dates" });
+  }
+}
+
+
 /* =============================================================
    EXPORTS
 ============================================================= */
@@ -287,5 +315,6 @@ module.exports = {
   substituteRequestsForUser,
   acceptSubstitute,
   rejectSubstitute,
-  checkAllAccepted
+  checkAllAccepted,
+  getBlockedDates
 };
