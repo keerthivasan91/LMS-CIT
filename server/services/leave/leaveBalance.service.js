@@ -18,8 +18,8 @@ exports.getBalance = async (userId, academicYear) => {
 /* ============================================================
    ENSURE BALANCE ROW EXISTS (YEAR INIT)
 ============================================================ */
-exports.ensureBalanceRow = async ({ conn, user_id, role, academic_year }) => {
-  const policy = leavePolicy.getPolicy(role);
+exports.ensureBalanceRow = async ({ conn, user_id, designation, academic_year }) => {
+  const policy = leavePolicy.getPolicy(designation);
 
   await conn.query(
     `INSERT INTO leave_balance
