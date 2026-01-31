@@ -2,6 +2,9 @@ require("dotenv").config();
 const logger = require("./services/logger");
 const app = require("./app");  
 const pool = require('./config/db');
+require("./cron/yearlyLeaveCredit");
+require("./cron/yearlyLeaveCollapse");
+
 
 const PORT = process.env.PORT || 5000;
 
